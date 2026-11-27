@@ -1,0 +1,84 @@
+{# Tab 3 -- Helpdesk & SLA Telemetry (spec 5.2, section 5.5) #}
+<div class="stat-strip" style="margin-bottom:18px">
+  <div class="stat">
+    <div class="stat__value">{{ summary.total or 0 }}</div>
+    <div class="stat__label">Total tickets</div>
+    <div class="stat__note">Zero billing / invoicing</div>
+  </div>
+  <div class="stat">
+    <div class="stat__value">{{ summary.open_n or 0 }}</div>
+    <div class="stat__label">Open</div>
+    <div class="stat__note">Includes reopened</div>
+  </div>
+  <div class="stat">
+    <div class="stat__value">{{ summary.resolved_n or 0 }}</div>
+    <div class="stat__label">Resolved</div>
+    <div class="stat__note">
+      {% if summary.total %}
+      {{ ((summary.resolved_n or 0) * 100 // summary.total) }}% resolution rate
+      {% endif %}
+    </div>
+  </div>
+  <div class="stat">
+    <div class="stat__value">
+      {% if summary.mttr_hours %}{{ '%.1f' % summary.mttr_hours }}h{% else %}--{% endif %}
+    </div>
+    <div class="stat__label">Mean time to resolve</div>
+    <div class="stat__note">MTTR across closed tickets</div>
+  </div>
+  <div class="stat">
+    <div class="stat__value">{{ reopened }}</div>
+    <div class="stat__label">Reopen rate count</div>
+    <div class="stat__note">Tickets returned to the queue</div>
+  </div>
+</div>
+
+<section class="panel">
+  <div class="panel__head"><h2>Category breakdown</h2><span class="rule-ref">Open vs total</span></div>
+  <div class="panel__body">
+    {% for c in by_category %}
+    <div class="meter-label">
+      <span>{{ c.category }}</span>
+      <span>{{ c.open_n or 0 }} open / {{ c.total }} total</span>
+    </div>
+    <div class="meter" role="img" aria-label="{{ c.category }}: {{ c.open_n or 0 }} open of {{ c.total }}">
+      <span class="meter__fill {% if (c.open_n or 0) > 0 %}meter__fill--accent{% else %}meter__fill--positive{% endif %}"
+            style="width: {{ (c.open_n * 100 // c.total) if c.total else 0 }}%"></span>
+    </div>
+    <div style="height:10px"></div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel__head">
+    <h2>Recent tickets</h2>
+    <a class="btn btn--sm" href="/admin/tickets">Full queue</a>
+  </div>
+  <div class="panel__body" style="padding:0">
+    <div class="table-scroll">
+      <table class="responsive">
+        <thead>
+          <tr><th>#</th><th>Subject</th><th>Unit</th><th>Raised by</th><th>Status</th><th>Priority</th></tr>
+        </thead>
+        <tbody>
+          {% for t in recent %}
+          <tr>
+            <td data-label="Ticket" class="mono">{{ t.ticket_number }}</td>
+            <td data-label="Subject" class="small">{{ t.subject }}</td>
+            <td data-label="Unit" class="mono">{{ t.canonical_code or 'Common' }}</td>
+            {# PII is shown only to authorised staff inside the authenticated zone #}
+            <td data-label="Raised by" class="small">{{ t.raiser }}</td>
+            <td data-label="Status">
+              <span class="pill {% if t.status in ('OPEN','REOPENED') %}pill--open{% elif t.status == 'RESOLVED' %}pill--ok{% else %}pill--due{% endif %}">
+                {{ t.status }}
+              </span>
+            </td>
+            <td data-label="Priority" class="small">{{ t.priority }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,115 @@
+{# Tab 1 -- Governance & Statutory Compliance Pulse (spec 5.2) #}
+<div class="stat-strip" style="margin-bottom:18px">
+  <div class="stat">
+    <div class="stat__value">{{ active_members }}</div>
+    <div class="stat__label">Active members</div>
+    <div class="stat__note">
+      {% if collegium_active %}
+      <span class="pill pill--over">[X] Collegium mode ACTIVE</span>
+      {% else %}
+      <span class="pill pill--ok">[OK] Below {{ collegium_threshold }}</span>
+      {% endif %}
+    </div>
+  </div>
+  <div class="stat">
+    <div class="stat__value">{{ gb_members }}</div>
+    <div class="stat__label">Governing Body size</div>
+    <div class="stat__note">
+      {% if gb_members < gb_min or gb_members > gb_max %}
+      <span class="pill pill--over">[X] Outside {{ gb_min }}&ndash;{{ gb_max }}</span>
+      {% else %}<span class="pill pill--ok">[OK] Within {{ gb_min }}&ndash;{{ gb_max }}</span>{% endif %}
+      <span class="rule-ref">Sec. 34(1)</span>
+    </div>
+  </div>
+  <div class="stat">
+    <div class="stat__value">{{ meetings_held }}/{{ meetings_required }}</div>
+    <div class="stat__label">GB meetings this year</div>
+    <div class="stat__note">
+      {% if meetings_held < meetings_required %}
+      <span class="pill pill--due">[DUE] {{ meetings_required - meetings_held }} short</span>
+      {% else %}<span class="pill pill--ok">[OK] Cadence met</span>{% endif %}
+      <span class="rule-ref">Sec. 36(1)</span>
+    </div>
+  </div>
+  <div class="stat">
+    <div class="stat__value">{{ pending_form_x | length }}</div>
+    <div class="stat__label">Pending Form-X</div>
+    <div class="stat__note">Awaiting admission approval</div>
+  </div>
+</div>
+
+<section class="panel">
+  <div class="panel__head">
+    <h2>Statutory Filing Countdowns</h2>
+    <span class="rule-ref">15-day Form-XII &middot; 30-day Form-XVII / XVII-A</span>
+  </div>
+  <div class="panel__body" style="padding:0">
+    {% if countdowns %}
+    <div class="table-scroll">
+      <table class="responsive">
+        <thead>
+          <tr><th>Form</th><th>Subject</th><th>Due date</th><th class="num">Days</th><th>Health</th></tr>
+        </thead>
+        <tbody>
+          {% for c in countdowns[:20] %}
+          <tr>
+            <td data-label="Form"><span class="tag">{{ c.form_ref }}</span></td>
+            <td data-label="Subject" class="small">{{ c.label }}</td>
+            <td data-label="Due date" class="mono">{{ c.due_date }}</td>
+            <td data-label="Days" class="num mono">
+              {% if c.days_left is defined %}
+                {{ c.days_left }}
+              {% endif %}
+            </td>
+            <td data-label="Health">
+              <span class="pill {% if c.health in ('OVERDUE','CRITICAL') %}pill--over{% elif c.health in ('DUE_SOON',) %}pill--due{% else %}pill--ok{% endif %}">
+                {{ c.shape }} {{ c.health.replace('_',' ') }}
+              </span>
+              <div class="rule-ref">{{ c.rule_ref }}</div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="muted mb-0" style="padding:14px">No statutory countdowns are currently running.</p>
+    {% endif %}
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel__head">
+    <h2>Pending Form-X Applications</h2>
+    <a class="btn btn--sm" href="/admin/admissions">Open queue</a>
+  </div>
+  <div class="panel__body" style="padding:0">
+    {% if pending_form_x %}
+    <div class="table-scroll">
+      <table class="responsive">
+        <thead><tr><th>Applicant</th><th>Unit</th><th>Category</th><th>Submitted</th></tr></thead>
+        <tbody>
+          {% for a in pending_form_x %}
+          <tr>
+            <td data-label="Applicant"><strong>{{ a.applicant_name }}</strong>
+                <div class="rule-ref">{{ a.email }}</div></td>
+            <td data-label="Unit" class="mono">{{ a.flat_id }}</td>
+            <td data-label="Category">{{ a.membership_category }}</td>
+            <td data-label="Submitted" class="mono small">{{ a.created_at[:10] }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p style="padding:14px" class="muted mb-0">The admission queue is clear.</p>
+    {% endif %}
+  </div>
+</section>
+
+<p class="rule-ref">
+  Colored states are always paired with a text prefix
+  (<span class="mono">[OK]</span> <span class="mono">[DUE]</span>
+  <span class="mono">[X]</span>) so status survives colour-blindness and
+  greyscale printing (spec 7.2).
+</p>

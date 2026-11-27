@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}My Profile -- {{ society.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <span class="tag">Member Record</span>
+  <span class="tag tag--muted">Form-XI / Form-XII</span>
+  <h1>My Profile &amp; Identity Card</h1>
+  <p>Your statutory particulars as held in the Register of Members. Report any
+     discrepancy to the society desk for correction.</p>
+</div>
+
+<div class="grid grid--wide">
+  <section class="panel">
+    <div class="panel__head"><h2>Particulars on record</h2><span class="rule-ref">Sec. 18(1)</span></div>
+    <div class="panel__body">
+      <dl class="meta">
+        <dt>Full name</dt><dd><strong>{{ member.full_name }}</strong></dd>
+        <dt>Father / spouse</dt><dd>{{ member.father_or_spouse_name or '-' }}</dd>
+        <dt>Date of birth</dt><dd class="mono">{{ member.date_of_birth or '-' }}</dd>
+        <dt>Member serial</dt><dd class="mono">{{ member.member_serial_no or '-' }}</dd>
+        <dt>Category</dt><dd>{{ (member.membership_category or 'NONE').title() }}</dd>
+        <dt>Occupation</dt><dd>{{ member.occupation or '-' }}</dd>
+        <dt>Mobile</dt><dd class="mono">{{ member.mobile_number }}</dd>
+        <dt>Email</dt><dd>{{ member.email }}</dd>
+        <dt>Address</dt><dd>{{ member.permanent_address or '-' }}</dd>
+        <dt>Admission</dt><dd class="mono">{{ member.admission_date or '-' }}</dd>
+        <dt>Status</dt>
+        <dd><span class="pill {% if member.account_status == 'ACTIVE' %}pill--ok{% else %}pill--due{% endif %}">
+          {{ member.account_status }}</span></dd>
+        {% if member.register_entry_due_date %}
+        <dt>Form-XII due</dt><dd class="mono">{{ member.register_entry_due_date }}</dd>
+        {% endif %}
+      </dl>
+
+      {% if member.fee_instrument_ref %}
+      <hr class="soft">
+      <h3>Fee instrument (non-cash)</h3>
+      <p class="small muted mb-0">
+        Recorded per Rule 11(1). Cash is never accepted for admission fees.
+      </p>
+      {% endif %}
+      {% if member.sec16_declarations %}
+      <p class="rule-ref" style="margin-top:8px">
+        Sec. 16(iv) declarations on file: insolvency, soundness of mind, moral turpitude.
+      </p>
+      {% endif %}
+    </div>
+  </section>
+
+  {# ---- Form-XI identity card (Sec. 17, Rule 11(2)) ---- #}
+  <section class="panel">
+    <div class="panel__head"><h2>Member Identity Card</h2><span class="rule-ref">Form-XI &middot; Rule 11(2)</span></div>
+    <div class="panel__body">
+      <div style="border:2px solid var(--border); padding:16px; background:var(--bg-alt)">
+        <p class="society-name" style="font-size:0.9rem">{{ society.name }}</p>
+        <p class="rule-ref" style="margin-top:2px">
+          Reg. No. {{ society.registration_number }}
+        </p>
+        <hr class="soft">
+        <dl class="meta">
+          <dt>Name</dt><dd><strong>{{ member.full_name }}</strong></dd>
+          <dt>Serial</dt><dd class="mono">{{ member.member_serial_no or 'Pending' }}</dd>
+          <dt>Category</dt><dd>{{ (member.membership_category or 'NONE').title() }}</dd>
+          {% if unit %}<dt>Address</dt><dd class="mono">{{ unit.canonical_code }}</dd>{% endif %}
+          <dt>Issued</dt><dd class="mono">{{ member.admission_date or 'On admission' }}</dd>
+          <dt>Validity</dt><dd>Renewal on annual general body confirmation</dd>
+        </dl>
+        <hr class="soft">
+        <p class="rule-ref mb-0">Authorized signatory: President / Secretary</p>
+      </div>
+      <div class="btn-group" style="margin-top:14px">
+        <button class="btn btn--primary" type="button" onclick="window.print()">Print card</button>
+        <a class="btn" href="/portal">Back to portal</a>
+      </div>
+      <p class="rule-ref" style="margin-top:12px">
+        Auto-generated on admission approval (Sec. 17, Rule 11(2)).
+      </p>
+    </div>
+  </section>
+</div>
+
+<section class="panel">
+  <div class="panel__head">
+    <h2>Right of Inspection</h2>
+    <span class="rule-ref">Sec. 19 &amp; Sec. 20(3)</span>
+  </div>
+  <div class="panel__body">
+    <p>As a member you may request inspection of the Register of Members and the
+       confirmed Minutes Books during working hours, on reasonable notice.</p>
+    <div class="btn-group">
+      <a class="btn btn--primary" href="mailto:{{ society.contact_email }}?subject=Inspection%20request%20(Sec.%2019)">
+        Email an inspection request
+      </a>
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block title %}Statutory Exports -- {{ society.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <span class="tag tag--accent">Statutory Register Exports</span>
+  <span class="tag tag--muted">Rule 23 two-signatory endorsement</span>
+  <h1>Forms, Registers &amp; Returns</h1>
+  <p>One-click generation of the prescribed statutory artifacts. Every export
+     carries the registered Society identity header (Sec. 10(2)) and the Rule 23
+     verification declaration block for endorsement by any two office-bearers.</p>
+</div>
+
+<div class="btn-group" style="margin-bottom:18px">
+  <a class="btn" href="/admin">Back to dashboard</a>
+  <a class="btn" href="/admin/directory">Membership directory</a>
+</div>
+
+<div class="stat-strip" style="margin-bottom:20px">
+  <div class="stat">
+    <div class="stat__value">{{ active_members }}</div>
+    <div class="stat__label">Active members</div>
+    <div class="stat__note">Basis for all register extracts</div>
+  </div>
+  <div class="stat">
+    <div class="stat__value">{{ 'ON' if collegium_active else 'OFF' }}</div>
+    <div class="stat__label">Collegium mode</div>
+    <div class="stat__note">
+      {% if collegium_active %}
+      <span class="pill pill--over">[X] Above 300 -- Form-XIII / XIV required</span>
+      {% else %}
+      <span class="pill pill--ok">[OK] At or below 300 (Sec. 30, Rule 18)</span>
+      {% endif %}
+    </div>
+  </div>
+  <div class="stat">
+    <div class="stat__value">{{ today }}</div>
+    <div class="stat__label">Export date</div>
+    <div class="stat__note">Stamped on every generated artifact</div>
+  </div>
+</div>
+
+<div class="grid grid--wide">
+  {% for code, title, ref in forms %}
+  <article class="card">
+    <div class="badge-row">
+      <span class="tag tag--accent">{{ code }}</span>
+      <span class="tag tag--muted">{{ ref }}</span>
+    </div>
+    <h3 class="card__title">{{ title }}</h3>
+
+    {% if code == 'FORM_XIII' or code == 'FORM_XIV' %}
+      {% if collegium_active %}
+      <p class="card__meta">Generated: electoral college division with no more than
+         300 colleges and at least 5&times; the Governing Body strength. In-person
+         voting only -- zero proxy voting (Sec. 29(4), Sec. 30, Sec. 32).</p>
+      <button class="btn btn--sm btn--primary" type="button" onclick="window.print()">Generate</button>
+      {% else %}
+      <p class="card__meta">
+        <span class="pill pill--ok">[OK] Not applicable</span> with
+        {{ active_members }} active members. This form activates automatically
+        above 300 (Sec. 30).
+      </p>
+      {% endif %}
+    {% elif code == 'FORM_XV' %}
+      <p class="card__meta">Separates inclusions and deletions within 60 days of
+         the financial year close (or 30 days post-AGM), paired with the
+         two-office-bearer verification endorsement (Sec. 18(3)-(4), Rule 13).</p>
+      <button class="btn btn--sm btn--primary" type="button" onclick="window.print()">Generate</button>
+    {% elif code == 'RULE_23' %}
+      <p class="card__meta">Prescribed verification declaration for endorsement by
+         any two office-bearers / Governing Body members on all statutory
+         register exports.</p>
+      <button class="btn btn--sm" type="button" onclick="window.print()">Print declaration</button>
+    {% else %}
+      <p class="card__meta">Includes the Rule 23 dual-signatory block and the
+         registered Society header on every page.</p>
+      <button class="btn btn--sm btn--primary" type="button" onclick="window.print()">Generate</button>
+    {% endif %}
+  </article>
+  {% endfor %}
+</div>
+
+{# ---- Preview: Form-XII register extract ---- #}
+<section class="panel" style="margin-top:6px">
+  <div class="panel__head">
+    <h2>Form-XII &mdash; Register of Members (preview)</h2>
+    <span class="rule-ref">Sec. 18(1) &amp; Rule 12 &middot; 15-day commit SLA</span>
+  </div>
+  <div class="panel__body" style="padding:0">
+    <div class="table-scroll">
+      <table class="responsive">
+        <thead>
+          <tr>
+            <th class="num">Sl.</th><th>Member serial</th><th>Name</th>
+            <th>Father / spouse</th><th>Unit</th><th>Category</th>
+            <th>Admission</th><th>Register due</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in members %}
+          <tr>
+            <td data-label="Sl." class="num mono">{{ loop.index }}</td>
+            <td data-label="Serial" class="mono">{{ m.member_serial_no or '-' }}</td>
+            <td data-label="Name">{{ m.full_name }}</td>
+            <td data-label="Father / spouse" class="small">{{ m.father_or_spouse_name or '-' }}</td>
+            <td data-label="Unit" class="mono">{{ m.canonical_code or '-' }}</td>
+            <td data-label="Category" class="small">{{ (m.membership_category or 'NONE').title() }}</td>
+            <td data-label="Admission" class="mono small">{{ m.admission_date or '-' }}</td>
+            <td data-label="Register due" class="mono small">
+              {{ m.register_entry_due_date or '-' }}
+              {% if m.register_entry_due_date %}
+                {% set left = (m.register_entry_due_date | string) %}
+                <div class="rule-ref">15-day window</div>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+{# ---- Rule 23 endorsement block ---- #}
+<section class="panel">
+  <div class="panel__head">
+    <h2>Rule 23 Verification Declaration</h2>
+    <span class="rule-ref">Two office-bearer endorsement</span>
+  </div>
+  <div class="panel__body">
+    <p>
+      I/We hereby certify that the above is a true and correct extract of the
+      Register of Members maintained under Section 18 of the Haryana Registration
+      and Regulation of Societies Act, 2012 and the Rules made thereunder, as on
+      the date mentioned above.
+    </p>
+    <div class="grid" style="margin-top:24px">
+      <div style="border-top:2px solid var(--border); padding-top:8px">
+        <p class="rule-ref mb-0">Office-bearer 1 &mdash; Name, designation, signature</p>
+      </div>
+      <div style="border-top:2px solid var(--border); padding-top:8px">
+        <p class="rule-ref mb-0">Office-bearer 2 &mdash; Name, designation, signature</p>
+      </div>
+    </div>
+    <p class="rule-ref" style="margin-top:16px">
+      Export generated {{ today }} by {{ principal.name }}
+      ({{ principal.role.replace('_',' ').title() }}) &middot;
+      {{ society.name }} &middot; Reg. No. {{ society.registration_number }}
+    </p>
+  </div>
+</section>
+
+<div class="btn-group">
+  <button class="btn btn--primary" type="button" onclick="window.print()">Print / save as PDF</button>
+  <a class="btn" href="/admin">Back to dashboard</a>
+</div>
+{% endblock %}

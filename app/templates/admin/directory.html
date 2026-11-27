@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Membership Directory -- {{ society.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <span class="tag">Membership &amp; Flat Directory</span>
+  <span class="tag tag--muted">Sec. 18(1) &middot; Rule 12</span>
+  <h1>Directory &amp; Bulk Edit Grid</h1>
+  <p>Spreadsheet-style editing across hundreds of rows, committed in a single
+     atomic transaction with row-level audit diffs (spec 5.1).</p>
+</div>
+
+<div class="btn-group" style="margin-bottom:16px">
+  <a class="btn" href="/admin">Back to dashboard</a>
+  <a class="btn" href="/admin/exports">Statutory exports</a>
+  <a class="btn btn--primary" href="/admin/admissions">Form-X queue</a>
+</div>
+
+<form method="get" action="/admin/directory" class="panel" style="padding:12px">
+  <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end">
+    <div class="field mb-0" style="flex:1 1 260px; margin:0">
+      <label for="q">Search name, unit, mobile or email</label>
+      <input type="search" id="q" name="q" value="{{ q }}" placeholder="e.g. BLK-A-0402">
+    </div>
+    <button class="btn" type="submit">Search</button>
+  </div>
+</form>
+
+<form method="post" action="/admin/directory/bulk">
+  <div class="panel panel--flush">
+    <div class="panel__head">
+      <h2>{{ rows | length }} record(s)</h2>
+      <span class="rule-ref">Edit cells, then commit all rows atomically</span>
+    </div>
+
+    <div class="table-scroll bulk-grid">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:22%">Name</th>
+            <th style="width:16%">Unit</th>
+            <th style="width:17%">Mobile</th>
+            <th style="width:21%">Email</th>
+            <th style="width:14%">Status</th>
+            <th style="width:10%">Role</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+          <tr>
+            <td>
+              <input type="hidden" name="row_id" value="{{ r.id }}">
+              <label class="visually-hidden" for="name-{{ r.id }}">Name row {{ loop.index }}</label>
+              <input type="text" id="name-{{ r.id }}" name="full_name" value="{{ r.full_name }}">
+            </td>
+            <td class="mono small">{{ r.canonical_code or '--' }}</td>
+            <td>
+              <label class="visually-hidden" for="mob-{{ r.id }}">Mobile row {{ loop.index }}</label>
+              <input type="tel" id="mob-{{ r.id }}" name="mobile_number" value="{{ r.mobile_number }}">
+            </td>
+            <td>
+              <label class="visually-hidden" for="mail-{{ r.id }}">Email row {{ loop.index }}</label>
+              <input type="email" id="mail-{{ r.id }}" name="email" value="{{ r.email }}">
+            </td>
+            <td>
+              <label class="visually-hidden" for="st-{{ r.id }}">Status row {{ loop.index }}</label>
+              <select id="st-{{ r.id }}" name="account_status">
+                {% for s in statuses %}
+                <option value="{{ s }}" {% if r.account_status == s %}selected{% endif %}>{{ s }}</option>
+                {% endfor %}
+              </select>
+            </td>
+            <td><span class="tag tag--muted">{{ r.role.replace('_',' ') }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel__body">
+      <div class="btn-group">
+        <button class="btn btn--primary" type="submit">Commit {{ rows | length }} row(s)</button>
+        <a class="btn btn--ghost" href="/admin/directory">Discard edits</a>
+      </div>
+      <p class="rule-ref" style="margin-top:10px">
+        One transaction. Any collision on the Flat + Mobile + Email triad rolls the
+        whole batch back. Every change writes actor, rule_ref, old_value and
+        new_value to the immutable audit log.
+      </p>
+    </div>
+  </div>
+</form>
+{% endblock %}

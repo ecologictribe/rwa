@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}Document Vault -- {{ society.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <span class="tag">Versioned Document &amp; MoM Vault</span>
+  <span class="tag tag--muted">Sec. 37</span>
+  <h1>Minutes of Meeting &amp; Document Control</h1>
+  <p>Handwritten MoM are captured from a mobile camera, deskewed and compressed
+     server-side into an archival PDF with a SHA-256 checksum. Published versions
+     are never overwritten (spec 5.3).</p>
+</div>
+
+<div class="btn-group" style="margin-bottom:18px">
+  <a class="btn" href="/admin">Back to dashboard</a>
+  <a class="btn" href="/admin?tab=5">Vault metrics</a>
+  <a class="btn btn--primary" href="/admin/exports">Rule 23 exports</a>
+</div>
+
+{# ---- Upload workflow ---- #}
+<section class="panel">
+  <div class="panel__head">
+    <h2>Capture a handwritten MoM</h2>
+    <span class="rule-ref">Mobile camera multi-page scan</span>
+  </div>
+  <div class="panel__body">
+    <div class="grid grid--wide">
+      <div>
+        <ol class="small" style="padding-left:20px">
+          <li>Photograph each handwritten page with the phone camera
+              (JPG / PNG / WebP), or upload a scanned PDF / DOCX.</li>
+          <li>The server deskews and compresses the pages into a legible
+              archival PDF under 1.5 MB; raw originals are retained in cold storage.</li>
+          <li>Statutory metadata is attached: meeting body, date, quorum count
+              against the 40% Rule 16 threshold, attendees, and sign-off status.</li>
+          <li>Uploading again creates <span class="mono">v(N+1)</span> with a
+              mandatory change summary -- the prior version is never destroyed.</li>
+        </ol>
+        <p class="rule-ref">
+          EXIF GPS metadata is stripped from resident and MoM camera photos;
+          magic-byte MIME verification and a 15 MB cap are enforced (spec 9.1).
+        </p>
+      </div>
+      <div>
+        <div class="alert">
+          <p class="alert__title">Dual sign-off required</p>
+          <p class="mb-0">
+            Sec. 37(2) requires both the Chairman and the Secretary signature
+            block, and Sec. 37(3) requires confirmation in the succeeding meeting
+            before a resolution is treated as final.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+{# ---- Inventory ---- #}
+<section class="panel">
+  <div class="panel__head"><h2>Documents ({{ docs | length }})</h2></div>
+  <div class="panel__body stack">
+    {% for d in docs %}
+    <article class="card">
+      <div class="badge-row">
+        <span class="tag">{{ d.doc_category.replace('_',' ') }}</span>
+        <span class="tag tag--muted">v{{ d.versions }}</span>
+        <span class="tag {% if d.visibility == 'PUBLIC' %}tag--positive{% endif %}">
+          {{ d.visibility.replace('_',' ') }}
+        </span>
+        {% if d.pending_signoff %}<span class="tag tag--accent">Sign-off pending</span>{% endif %}
+      </div>
+      <h3 class="card__title">{{ d.title }}</h3>
+
+      <dl class="meta">
+        {% if d.meeting_date %}<dt>Meeting date</dt><dd class="mono">{{ d.meeting_date }}</dd>{% endif %}
+        {% if d.quorum_required %}
+        <dt>Quorum (Rule 16)</dt>
+        <dd>
+          {{ d.quorum_present }}/{{ d.quorum_required }}
+          {% if (d.quorum_present or 0) >= d.quorum_required %}
+          <span class="pill pill--ok">[OK] 40% met</span>
+          {% else %}<span class="pill pill--over">[X] Below 40% -- adjournment mandatory</span>{% endif %}
+        </dd>
+        {% endif %}
+        <dt>Chairman (37(2))</dt>
+        <dd>{% if d.chairman_signed %}<span class="pill pill--ok">[OK] Signed</span>
+            {% else %}<span class="pill pill--due">[DUE] Awaiting</span>{% endif %}</dd>
+        <dt>Secretary (37(2))</dt>
+        <dd>{% if d.secretary_signed %}<span class="pill pill--ok">[OK] Signed</span>
+            {% else %}<span class="pill pill--due">[DUE] Awaiting</span>{% endif %}</dd>
+        <dt>Confirmed (37(3))</dt>
+        <dd>{% if d.confirmed_in_next_meeting_date %}<span class="mono">{{ d.confirmed_in_next_meeting_date }}</span>
+            {% else %}<span class="pill pill--due">[DUE] Not yet confirmed</span>{% endif %}</dd>
+      </dl>
+
+      {% if d.pending_signoff %}
+      <div class="btn-group">
+        {% if not d.chairman_signed %}
+        <form method="post" action="/admin/vault/{{ d.id }}/signoff" style="display:inline">
+          <input type="hidden" name="signer" value="chairman">
+          <button class="btn btn--sm btn--primary" type="submit">Record Chairman sign-off</button>
+        </form>
+        {% endif %}
+        {% if not d.secretary_signed %}
+        <form method="post" action="/admin/vault/{{ d.id }}/signoff" style="display:inline">
+          <input type="hidden" name="signer" value="secretary">
+          <button class="btn btn--sm btn--primary" type="submit">Record Secretary sign-off</button>
+        </form>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      {% if d.chairman_signed and d.secretary_signed and not d.confirmed_in_next_meeting_date %}
+      <form method="post" action="/admin/vault/{{ d.id }}/confirm"
+            style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end; margin-top:8px">
+        <div class="field" style="margin:0">
+          <label for="conf-{{ d.id }}">Confirmation date (succeeding meeting)</label>
+          <input type="date" id="conf-{{ d.id }}" name="confirm_date" required>
+        </div>
+        <button class="btn btn--sm" type="submit">Record Sec. 37(3) confirmation</button>
+      </form>
+      {% endif %}
+
+      <hr class="soft">
+      <h4>Version history</h4>
+      <div class="table-scroll">
+        <table class="responsive">
+          <thead><tr><th>Ver.</th><th>Change summary</th><th>Status</th><th>SHA-256</th></tr></thead>
+          <tbody>
+            {% for v in d.versions_list %}
+            <tr>
+              <td data-label="Ver." class="mono">v{{ v.version_number }}</td>
+              <td data-label="Change summary" class="small">
+                {{ v.change_summary }}
+                <div class="rule-ref">by {{ v.uploader }} &middot; {{ v.created_at[:10] }}</div>
+              </td>
+              <td data-label="Status">
+                <span class="pill {% if v.approval_status == 'APPROVED' %}pill--ok{% elif v.approval_status == 'SUPERSEDED' %}pill--muted{% else %}pill--due{% endif %}">
+                  {{ v.approval_status }}
+                </span>
+                {% if v.approval_status == 'SUPERSEDED' %}
+                <div class="rule-ref">SUPERSEDED -- ARCHIVE COPY watermark</div>
+                {% endif %}
+              </td>
+              <td data-label="SHA-256" class="mono" style="font-size:0.68rem">{{ v.sha256_checksum[:16] }}&hellip;</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </article>
+    {% else %}
+    <p class="muted mb-0">No documents in the vault yet.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

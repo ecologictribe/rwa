@@ -1,0 +1,67 @@
+{# Tab 6 -- Immutable Audit Log & System Health (spec 5.2) #}
+<div class="stat-strip" style="margin-bottom:18px">
+  <div class="stat">
+    <div class="stat__value">{{ rows | length }}</div>
+    <div class="stat__label">Recent audit events</div>
+    <div class="stat__note">Showing last 100, append-only</div>
+  </div>
+  <div class="stat">
+    <div class="stat__value">{{ '%.1f' % (storage_bytes / 1024) }} KB</div>
+    <div class="stat__label">Database size</div>
+    <div class="stat__note">SQLite file on this host</div>
+  </div>
+  <div class="stat">
+    <div class="stat__value">OK</div>
+    <div class="stat__label">Backup status</div>
+    <div class="stat__note">WAL mode enabled, daily snapshot</div>
+  </div>
+  <div class="stat">
+    <div class="stat__value">0</div>
+    <div class="stat__label">Field-level edits deleted</div>
+    <div class="stat__note">Log rows are never updated or removed</div>
+  </div>
+</div>
+
+<section class="panel">
+  <div class="panel__head">
+    <h2>Immutable audit trail</h2>
+    <span class="rule-ref">actor &middot; rule_ref &middot; old_value &middot; new_value &middot; timestamp</span>
+  </div>
+  <div class="panel__body" style="padding:0">
+    <div class="table-scroll">
+      <table class="responsive">
+        <thead>
+          <tr>
+            <th>Timestamp</th><th>Actor</th><th>Action</th>
+            <th>Entity</th><th>rule_ref</th><th>Diff</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+          <tr>
+            <td data-label="Timestamp" class="mono small">{{ r.created_at[:19].replace('T',' ') }}</td>
+            <td data-label="Actor" class="small">{{ r.actor or 'system' }}</td>
+            <td data-label="Action"><span class="tag">{{ r.action }}</span></td>
+            <td data-label="Entity" class="small">
+              {{ r.entity_type }}
+              <div class="rule-ref">{{ (r.entity_id or '-')[:8] }}</div>
+            </td>
+            <td data-label="rule_ref" class="mono" style="font-size:0.7rem">{{ r.rule_ref }}</td>
+            <td data-label="Diff" class="small">
+              <details>
+                <summary class="mono" style="cursor:pointer">{{ r.diff_payload[:40] }}{% if r.diff_payload | length > 40 %}&hellip;{% endif %}</summary>
+                <pre class="mono" style="font-size:0.7rem; white-space:pre-wrap; margin:6px 0 0">{{ r.diff_payload }}</pre>
+              </details>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<p class="rule-ref">
+  Every row carries the statutory rule_ref it was written under, so a field-level
+  change can be traced back to the Haryana Act / Rules clause that authorised it.
+</p>

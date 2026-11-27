@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Local runtime data (SQLite database, uploads, backups)
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# One-off probes & scratch artifacts (per global rules)
+.quarantine/
+
+# Generated / installer output
+var/
+build/
+dist/
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env
+.env.*
+!.env.example

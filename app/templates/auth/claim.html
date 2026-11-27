@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Claim Your Account -- {{ society.name }}{% endblock %}
+{% block content %}
+<div class="wrap--narrow" style="margin:0 auto">
+  <div class="page-head">
+    <span class="tag">Bulk Pre-Seed Claim</span>
+    <span class="tag tag--muted">Workflow 1, spec 2.2</span>
+    <h1>Claim Your Account</h1>
+    <p>If the society desk has pre-loaded your Form-XII record, set your password here
+       using your flat number, registered mobile and email.</p>
+  </div>
+
+  {% if error %}
+  <div class="alert alert--error" role="alert">
+    <p class="alert__title">Cannot claim</p>
+    <p class="mb-0">{{ error }}</p>
+  </div>
+  {% endif %}
+
+  <form method="post" action="/claim" class="panel">
+    <div class="panel__head"><h2>Verify your record</h2><span class="rule-ref">Flat + Mobile + Email</span></div>
+    <div class="panel__body">
+      <div class="field">
+        <label for="flat_code">Flat / house / plot number</label>
+        <input type="text" id="flat_code" name="flat_code" required
+               placeholder="BLK-A-0402" autocomplete="off">
+        <p class="field__hint">Canonical unit code as it appears in the register.</p>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="mobile_number">Registered mobile</label>
+          <input type="tel" id="mobile_number" name="mobile_number" required
+                 placeholder="+919876543210">
+        </div>
+        <div class="field">
+          <label for="email">Registered email</label>
+          <input type="email" id="email" name="email" required placeholder="you@example.com">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="password">New password</label>
+          <input type="password" id="password" name="password" required
+                 autocomplete="new-password" minlength="8" placeholder="At least 8 characters">
+        </div>
+        <div class="field">
+          <label for="password_confirm">Confirm password</label>
+          <input type="password" id="password_confirm" name="password_confirm" required
+                 autocomplete="new-password" minlength="8">
+        </div>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn--primary" type="submit">Claim account</button>
+        <a class="btn btn--ghost" href="/login">Back to sign in</a>
+      </div>
+      <p class="rule-ref" style="margin-top:12px">
+        Already claimed? Sign in instead, or ask the desk for an in-person reset code
+        after showing your Form-XI ID card.
+      </p>
+    </div>
+  </form>
+</div>
+{% endblock %}

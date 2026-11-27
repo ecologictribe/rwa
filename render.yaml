@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: rwa-portal
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: RWA_ENV
+        value: production
+      - key: RWA_SECRET_KEY
+        generateValue: true
+      - key: PYTHON_VERSION
+        value: 3.12.0
+    # To attach a persistent disk (requires Render Starter plan $7/mo), change plan to 'starter' and uncomment below:
+    # disk:
+    #   name: rwa-data
+    #   mountPath: /data
+    #   sizeGB: 1
+    # envVars:
+    #   - key: RWA_DATA_DIR
+    #     value: /data

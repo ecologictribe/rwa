@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+.git/
+.gitignore
+.quarantine/
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+.env*
+.vscode/
+.idea/
+specs/

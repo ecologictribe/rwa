@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Notices & Circulars -- {{ society.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <span class="tag">Public Circulars</span>
+  <h1>Notices &amp; Circulars</h1>
+  <p>Published announcements from the society desk. Notices marked
+     <span class="tag tag--accent">URGENT</span> or
+     <span class="tag tag--accent">SHUTDOWN</span> require immediate attention.</p>
+</div>
+
+{% if notices %}
+<div class="stack">
+  {% for n in notices %}
+  <article class="panel">
+    <div class="panel__head">
+      <h2><a href="/notices/{{ n.slug }}">{{ n.title }}</a></h2>
+      <div class="badge-row">
+        <span class="tag {% if n.priority in ('URGENT','SHUTDOWN') %}tag--accent{% endif %}">{{ n.priority.replace('_',' ') }}</span>
+        {% if n.is_pinned %}<span class="tag tag--solid">Pinned</span>{% endif %}
+        <span class="tag tag--muted mono">{{ n.published_at[:10] }}</span>
+      </div>
+    </div>
+    <div class="panel__body">
+      {{ n.body_html | safe }}
+      <div class="btn-group" style="margin-top:10px">
+        <a class="btn btn--sm" href="/notices/{{ n.slug }}">Read full notice</a>
+        <button class="btn btn--sm" type="button"
+                onclick="navigator.share ? navigator.share({title: {{ n.title|tojson }}, url: location.origin + '/notices/{{ n.slug }}'}) : null">
+          Share
+        </button>
+        <a class="btn btn--sm" target="_blank" rel="noopener"
+           href="https://wa.me/?text={{ (n.title ~ ' -- ' ~ society.name)|urlencode }}">WhatsApp</a>
+      </div>
+      <p class="rule-ref mb-0" style="margin-top:8px">Published by {{ n.publisher }} &middot; {{ society.name }}</p>
+    </div>
+  </article>
+{% endfor %}
+</div>
+{% else %}
+<div class="panel"><p class="mb-0 muted">No notices have been published yet.</p></div>
+{% endif %}
+{% endblock %}

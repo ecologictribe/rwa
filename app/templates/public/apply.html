@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+{% block title %}Form-X Membership Application -- {{ society.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <span class="tag tag--accent">Form-X</span>
+  <span class="tag">Sec. 15&ndash;16, Sec. 18(1), Sec. 21(5)</span>
+  <span class="tag tag--muted">Rule 11(1)</span>
+  <h1>Application for Admission as a Member</h1>
+  <p>
+    Complete every field. Your application enters
+    <span class="mono">PENDING_VERIFICATION</span> and is reviewed by the society
+    office within the statutory cycle. Every validation below is enforced on the
+    server, not only in the browser.
+  </p>
+</div>
+
+{% if errors %}
+<div class="alert alert--error" role="alert">
+  <p class="alert__title">Application not submitted &mdash; {{ errors|length }} issue(s)</p>
+  <ul style="margin:6px 0 0; padding-left:20px">
+    {% for e in errors %}<li>{{ e }}</li>{% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<form method="post" action="/apply" class="panel" novalidate>
+  <div class="panel__head">
+    <h2>Part A &mdash; Personal Particulars</h2>
+    <span class="rule-ref">Rule 11(1) (Form-X) &amp; Rule 12 (Form-XII)</span>
+  </div>
+  <div class="panel__body">
+    <div class="field-row">
+      <div class="field">
+        <label for="applicant_name">Applicant full legal name *</label>
+        <input type="text" id="applicant_name" name="applicant_name" required
+               autocomplete="name" value="{{ values.get('applicant_name','') }}"
+               placeholder="As printed on identity proof">
+        <p class="field__hint">Recorded verbatim in Form-XII. (Sec. 18(1), Sec. 21(5))</p>
+      </div>
+      <div class="field">
+        <label for="father_or_spouse_name">Father's / spouse's name *</label>
+        <input type="text" id="father_or_spouse_name" name="father_or_spouse_name" required
+               value="{{ values.get('father_or_spouse_name','') }}">
+        <p class="field__hint">Mandatory statutory particular. (Rule 11(1))</p>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label for="date_of_birth">Date of birth *</label>
+        <input type="date" id="date_of_birth" name="date_of_birth" required
+               max="{{ today }}" value="{{ values.get('date_of_birth','') }}">
+        <p class="field__hint">
+          Must be at least 21 years old on the date of admission.
+          <span class="tag tag--muted">Sec. 16(i)</span>
+        </p>
+      </div>
+      <div class="field">
+        <label for="membership_category">Membership category *</label>
+        <select id="membership_category" name="membership_category" required>
+          <option value="">-- select --</option>
+          {% for key, label in categories.items() %}
+          <option value="{{ key }}" {% if values.get('membership_category') == key %}selected{% endif %}>
+            {{ label }}
+          </option>
+          {% endfor %}
+        </select>
+        <p class="field__hint">Categories registered under the bye-laws. (Sec. 15)</p>
+      </div>
+    </div>
+
+    <hr class="soft">
+
+    <div class="panel__head" style="border-top:1px solid var(--border); margin:-14px -14px 14px">
+      <h2>Part B &mdash; Unit &amp; Contact (Login Credential Triad)</h2>
+      <span class="rule-ref">No SMS OTP</span>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label for="flat_id">Flat / house / plot ID *</label>
+        <select id="flat_id" name="flat_id" required>
+          <option value="">-- select your unit --</option>
+          {% for u in units %}
+          <option value="{{ u.canonical_code }}" {% if values.get('flat_id') == u.canonical_code %}selected{% endif %}>
+            {{ u.canonical_code }}{% if u.occupancy_status == 'VACANT' %} (vacant){% endif %}
+          </option>
+          {% endfor %}
+        </select>
+        <p class="field__hint">Maps to the society property master; joint / co-owner
+           status is flagged per bye-laws. (Sec. 18(1), Sec. 21(5))</p>
+      </div>
+      <div class="field">
+        <label for="mobile_number">Mobile number *</label>
+        <input type="tel" id="mobile_number" name="mobile_number" required
+               inputmode="tel" pattern="[+0-9 ]{10,16}"
+               value="{{ values.get('mobile_number','') }}" placeholder="+91 98765 43210">
+        <p class="field__hint">10-digit, E.164 normalised. Forms part of your login. (Sec. 18(1))</p>
+      </div>
+      <div class="field">
+        <label for="email">Email address *</label>
+        <input type="email" id="email" name="email" required autocomplete="email"
+               value="{{ values.get('email','') }}" placeholder="you@example.com">
+        <p class="field__hint">Lowercase normalised, unique per society. Password resets
+           are emailed -- there is no SMS OTP dependency.</p>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="permanent_address">Permanent address *</label>
+      <textarea id="permanent_address" name="permanent_address" required
+                placeholder="House, street, city, state, PIN">{{ values.get('permanent_address','') }}</textarea>
+      <p class="field__hint">Proof of identity and address is recorded in the register.
+         (Sec. 21(5))</p>
+    </div>
+
+    <div class="field">
+      <label for="residential_address">Residential address (if different)</label>
+      <textarea id="residential_address" name="residential_address"
+                placeholder="Leave blank if the same as permanent address">{{ values.get('residential_address','') }}</textarea>
+    </div>
+
+    <div class="field">
+      <label for="proof">Identity / address proof attachment</label>
+      <input type="file" id="proof" name="proof" accept=".pdf,.jpg,.jpeg,.png">
+      <p class="field__hint">PDF, JPG or PNG. Metadata is stored for statutory
+         verification; EXIF GPS is stripped on upload. (Sec. 21(5), spec 9.1)</p>
+    </div>
+
+    <hr class="soft">
+
+    <div class="panel__head" style="border-top:1px solid var(--border); margin:-14px -14px 14px">
+      <h2>Part C &mdash; Non-Cash Fee Instrument</h2>
+      <span class="tag tag--accent">Rule 11(1): cash prohibited</span>
+    </div>
+
+    <div class="alert">
+      <p class="alert__title">Bank instrument only</p>
+      <p class="mb-0">
+        The admission fee must be paid from the applicant's own bank account by
+        cheque, demand draft or pay order. <strong>Cash is strictly disabled</strong>
+        and any cash selection is rejected server-side.
+      </p>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label for="fee_instrument_type">Instrument type *</label>
+        <select id="fee_instrument_type" name="fee_instrument_type" required>
+          <option value="">-- select --</option>
+          <option value="CHEQUE" {% if values.get('fee_instrument_type') == 'CHEQUE' %}selected{% endif %}>Cheque</option>
+          <option value="DEMAND_DRAFT" {% if values.get('fee_instrument_type') == 'DEMAND_DRAFT' %}selected{% endif %}>Demand Draft</option>
+          <option value="PAY_ORDER" {% if values.get('fee_instrument_type') == 'PAY_ORDER' %}selected{% endif %}>Pay Order</option>
+        </select>
+        <p class="field__hint">The cash option does not exist in this form.</p>
+      </div>
+      <div class="field">
+        <label for="fee_instrument_number">Instrument number *</label>
+        <input type="text" id="fee_instrument_number" name="fee_instrument_number" required
+               value="{{ values.get('fee_instrument_number','') }}" placeholder="001234">
+      </div>
+      <div class="field">
+        <label for="fee_instrument_bank">Issuing bank *</label>
+        <input type="text" id="fee_instrument_bank" name="fee_instrument_bank" required
+               value="{{ values.get('fee_instrument_bank','') }}" placeholder="Bank & branch">
+      </div>
+      <div class="field">
+        <label for="fee_instrument_date">Instrument date *</label>
+        <input type="date" id="fee_instrument_date" name="fee_instrument_date" required
+               max="{{ today }}" value="{{ values.get('fee_instrument_date','') }}">
+      </div>
+    </div>
+
+    <hr class="soft">
+
+    <fieldset>
+      <legend>Part D &mdash; Subscription to Aims &amp; Objects</legend>
+      <label class="checkbox" for="aims_subscribed">
+        <input type="checkbox" id="aims_subscribed" name="aims_subscribed"
+               {% if values.get('aims_subscribed') %}checked{% endif %}>
+        <span>I subscribe to the aims, objects and registered Bye-laws of the Society.
+              <span class="tag tag--muted">Sec. 16(ii), Sec. 20(1)</span></span>
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Part E &mdash; Disqualification Declarations</legend>
+      <p class="small muted">All three attestations are mandatory. Any disqualifying
+         flag blocks admission. <span class="tag tag--muted">Sec. 16(iv)</span></p>
+
+      <label class="checkbox" for="decl_insolvent">
+        <input type="checkbox" id="decl_insolvent" name="decl_insolvent"
+               {% if values.get('decl_insolvent') %}checked{% endif %}>
+        <span><strong>(a)</strong> I am not an undischarged insolvent.</span>
+      </label>
+
+      <label class="checkbox" for="decl_sound_mind">
+        <input type="checkbox" id="decl_sound_mind" name="decl_sound_mind"
+               {% if values.get('decl_sound_mind') %}checked{% endif %}>
+        <span><strong>(b)</strong> I am not of unsound mind.</span>
+      </label>
+
+      <label class="checkbox" for="decl_moral_turpitude">
+        <input type="checkbox" id="decl_moral_turpitude" name="decl_moral_turpitude"
+               {% if values.get('decl_moral_turpitude') %}checked{% endif %}>
+        <span><strong>(c)</strong> I have not been convicted of an offence involving
+              moral turpitude punishable with imprisonment of one year or more.</span>
+      </label>
+    </fieldset>
+
+    <div class="btn-group">
+      <button class="btn btn--primary" type="submit">Submit Form-X application</button>
+      <a class="btn btn--ghost" href="/">Cancel</a>
+    </div>
+
+    <p class="rule-ref" style="margin-top:14px">
+      Submitted data is written to the immutable audit log with rule_ref
+      HRRS_ACT_2012_SEC_18_1 | RULE_11_1_FORM_X. This portal performs no
+      accounting, billing or payment processing.
+    </p>
+  </div>
+</form>
+{% endblock %}

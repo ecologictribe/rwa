@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}Form-X Admissions -- {{ society.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <span class="tag tag--accent">Form-X Admission Queue</span>
+  <span class="tag">Sec. 15&ndash;16</span>
+  <span class="tag tag--muted">Rule 11(1)</span>
+  <h1>Pending Admissions</h1>
+  <p>Every statutory guard rail is re-checked on the server before an admission
+     is written: minimum age 21, all three Sec. 16(iv) declarations, and a
+     non-cash bank instrument (spec 9.1).</p>
+</div>
+
+<div class="btn-group" style="margin-bottom:18px">
+  <a class="btn" href="/admin">Back to dashboard</a>
+  <a class="btn" href="/admin/directory">Membership directory</a>
+</div>
+
+{% if rows %}
+<div class="stack">
+  {% for a in rows %}
+  <article class="panel">
+    <div class="panel__head">
+      <h2>{{ a.applicant_name }}</h2>
+      <div class="badge-row">
+        <span class="tag {% if a.status == 'APPROVED' %}tag--positive{% elif a.status == 'REJECTED' %}tag--accent{% endif %}">
+          {{ a.status.replace('_',' ') }}
+        </span>
+        <span class="tag tag--muted mono">{{ a.created_at[:10] }}</span>
+      </div>
+    </div>
+    <div class="panel__body">
+      <div class="grid grid--wide">
+        <div>
+          <dl class="meta">
+            <dt>Father / spouse</dt><dd>{{ a.father_or_spouse_name }}</dd>
+            <dt>Date of birth</dt><dd class="mono">{{ a.date_of_birth }}</dd>
+            <dt>Age</dt>
+            <dd>
+              {% if a.age_ok %}
+              <span class="pill pill--ok">[OK] {{ a.age_at_admission }} yrs</span>
+              {% else %}
+              <span class="pill pill--over">[X] Under 21 &mdash; Sec. 16(i)</span>
+              {% endif %}
+            </dd>
+            <dt>Category</dt><dd>{{ a.membership_category }}</dd>
+            <dt>Unit</dt><dd class="mono">{{ a.flat_id }}</dd>
+            <dt>Mobile</dt><dd class="mono">{{ a.mobile_number }}</dd>
+            <dt>Email</dt><dd>{{ a.email }}</dd>
+          </dl>
+        </div>
+        <div>
+          <h3>Bank instrument (Rule 11(1))</h3>
+          <dl class="meta">
+            <dt>Type</dt><dd class="mono">{{ a.fee.get('type', '-') }}</dd>
+            <dt>Number</dt><dd class="mono">{{ a.fee.get('number', '-') }}</dd>
+            <dt>Bank</dt><dd>{{ a.fee.get('bank', '-') }}</dd>
+            <dt>Date</dt><dd class="mono">{{ a.fee.get('date', '-') }}</dd>
+            <dt>Cash</dt>
+            <dd>
+              {% if a.fee.get('cash_accepted') %}
+              <span class="pill pill--over">[X] PROHIBITED</span>
+              {% else %}<span class="pill pill--ok">[OK] Non-cash</span>{% endif %}
+            </dd>
+          </dl>
+
+          <h3 style="margin-top:14px">Sec. 16(iv) declarations</h3>
+          <div class="badge-row">
+            <span class="pill {% if a.decls.get('not_insolvent') %}pill--ok{% else %}pill--over{% endif %}">
+              {% if a.decls.get('not_insolvent') %}[OK]{% else %}[X]{% endif %} Not insolvent
+            </span>
+            <span class="pill {% if a.decls.get('sound_mind') %}pill--ok{% else %}pill--over{% endif %}">
+              {% if a.decls.get('sound_mind') %}[OK]{% else %}[X]{% endif %} Sound mind
+            </span>
+            <span class="pill {% if a.decls.get('no_moral_turpitude') %}pill--ok{% else %}pill--over{% endif %}">
+              {% if a.decls.get('no_moral_turpitude') %}[OK]{% else %}[X]{% endif %} No moral turpitude
+            </span>
+            <span class="pill {% if a.aims_subscribed %}pill--ok{% else %}pill--over{% endif %}">
+              {% if a.aims_subscribed %}[OK]{% else %}[X]{% endif %} Aims subscribed
+            </span>
+          </div>
+
+          <p class="rule-ref" style="margin-top:10px">
+            Permanent: {{ a.permanent_address }}
+            {% if a.residential_address != a.permanent_address %}<br>Residential: {{ a.residential_address }}{% endif %}
+          </p>
+          {% if a.proof_filename %}
+          <p class="rule-ref">Proof attached: {{ a.proof_filename }} (Sec. 21(5))</p>
+          {% endif %}
+          {% if a.status == 'REJECTED' and a.rejection_reason %}
+          <div class="alert alert--error"><p class="alert__title">Rejected</p>
+            <p class="mb-0">{{ a.rejection_reason }}</p></div>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if a.status == 'PENDING_VERIFICATION' %}
+      <form method="post" action="/admin/admissions/{{ a.id }}/approve"
+            onsubmit="return confirm('Admit {{ a.applicant_name }}? A 15-day Form-XII countdown starts immediately.');"
+            style="display:inline; margin-right:8px">
+        <button class="btn btn--primary" type="submit">Approve admission</button>
+      </form>
+      <form method="post" action="/admin/admissions/{{ a.id }}/reject"
+            style="display:inline">
+        <label class="visually-hidden" for="reason-{{ a.id }}">Rejection reason</label>
+        <input type="text" id="reason-{{ a.id }}" name="reason"
+               placeholder="Rejection reason" style="width:auto; min-height:48px; display:inline-block">
+        <button class="btn" type="submit">Reject</button>
+      </form>
+      {% else %}
+      <p class="rule-ref mb-0">
+        Reviewed {{ a.reviewed_at[:10] if a.reviewed_at else '-' }}.
+        {% if a.status == 'APPROVED' %}
+        Register entry due within 15 days (Sec. 18(1)).
+        {% endif %}
+      </p>
+      {% endif %}
+    </div>
+  </article>
+  {% endfor %}
+</div>
+{% else %}
+<div class="panel">
+  <p class="mb-0 muted">The admission queue is empty. New Form-X applications
+     appear here as they are submitted at <span class="mono">/apply</span>.</p>
+</div>
+{% endif %}
+{% endblock %}

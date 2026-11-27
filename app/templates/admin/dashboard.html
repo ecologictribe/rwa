@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Administration -- {{ society.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <span class="tag tag--accent">Operations Workspace</span>
+  <span class="tag">{{ principal.role.replace('_',' ').title() }}</span>
+  <span class="tag tag--muted">RBAC enforced server-side</span>
+  <h1>Administration</h1>
+  <p>Six asynchronous tabs, loaded on demand so the initial page weight stays
+     inside the 60 KB budget (spec 5.2).</p>
+</div>
+
+<nav class="tabs" role="tablist" aria-label="Administration sections">
+  {% for id, label in tabs %}
+  <a href="/admin?tab={{ id }}"
+     role="tab"
+     {% if active_tab == id %}aria-current="page" aria-selected="true"{% else %}aria-selected="false"{% endif %}>
+    {{ id }}. {{ label }}
+  </a>
+  {% endfor %}
+</nav>
+
+{# Tab content is fetched over HTMX; a plain link also works without JS. #}
+<div class="tab-panel" id="admin-tab" role="tabpanel"
+     hx-get="/admin/tabs/{{ active_tab }}" hx-trigger="load" hx-swap="innerHTML">
+  <noscript>
+    <p class="muted">Loading tab {{ active_tab }}&hellip; If this message stays,
+       <a href="/admin/tabs/{{ active_tab }}">open the tab directly</a>.</p>
+  </noscript>
+</div>
+
+<hr>
+
+<section aria-labelledby="quick-h">
+  <h2 id="quick-h" class="visually-hidden">Quick actions</h2>
+  <div class="btn-group">
+    {% if principal.can('enter_directory') %}
+    <a class="btn" href="/admin/directory">Membership directory</a>
+    {% endif %}
+    {% if principal.can('approve_member') %}
+    <a class="btn" href="/admin/admissions">Form-X admissions</a>
+    {% endif %}
+    {% if principal.can('publish_announcement') %}
+    <a class="btn" href="/admin/announcements">Announcements</a>
+    {% endif %}
+    {% if principal.can('escalate_ticket') %}
+    <a class="btn" href="/admin/tickets">Helpdesk queue</a>
+    {% endif %}
+    {% if principal.can('manage_committee') %}
+    <a class="btn" href="/admin/committee">Governing Body</a>
+    {% endif %}
+    {% if principal.can('manage_initiatives') %}
+    <a class="btn" href="/admin/initiatives">Civic initiatives</a>
+    {% endif %}
+    {% if principal.can('upload_documents') %}
+    <a class="btn" href="/admin/vault">Document vault</a>
+    {% endif %}
+    {% if principal.can('export_registers') %}
+    <a class="btn btn--primary" href="/admin/exports">Statutory exports</a>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Contacts & Emergency Numbers -- {{ society.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <span class="tag">Emergency &amp; Directory</span>
+  <h1>Contacts</h1>
+  <p>Statutory office bearers, society desk and emergency services. Personal mobile
+     numbers of residents are never published (privacy guardrail, spec 4.1).</p>
+</div>
+
+<div class="grid grid--wide">
+  <section class="panel">
+    <div class="panel__head"><h2>Emergency Services</h2><span class="rule-ref">All India</span></div>
+    <div class="panel__body" style="padding:0">
+      <div class="table-scroll">
+        <table class="responsive">
+          <thead><tr><th>Service</th><th class="num">Number</th><th>Purpose</th></tr></thead>
+          <tbody>
+            {% for name, num, purpose in emergency %}
+            <tr>
+              <td data-label="Service"><strong>{{ name }}</strong></td>
+              <td data-label="Number" class="num"><a class="mono" href="tel:{{ num|replace(' ','') }}">{{ num }}</a></td>
+              <td data-label="Purpose" class="small muted">{{ purpose }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel__head"><h2>Society Office</h2><span class="rule-ref">Sec. 10(2)</span></div>
+    <div class="panel__body">
+      <dl class="meta">
+        <dt>Name</dt><dd><strong>{{ society.name }}</strong></dd>
+        <dt>Reg. No.</dt><dd class="mono">{{ society.registration_number }}</dd>
+        <dt>Office</dt><dd>{{ society.registered_office_address }}</dd>
+        <dt>Email</dt><dd><a href="mailto:{{ society.contact_email }}">{{ society.contact_email }}</a></dd>
+        <dt>Phone</dt><dd class="mono">{{ society.contact_phone }}</dd>
+        <dt>Hours</dt><dd>Mon&ndash;Sat, 10:00&ndash;16:00</dd>
+      </dl>
+      <hr class="soft">
+      <p class="small muted mb-0">
+        Working-hour inspection of the Register of Members and confirmed Minutes Books
+        is available to members on reasonable notice (Sec. 19, Sec. 20(3)).
+      </p>
+      <div class="btn-group" style="margin-top:12px">
+        <a class="btn btn--sm btn--primary" href="/login">Request inspection</a>
+        <a class="btn btn--sm" href="/apply">Apply for membership</a>
+      </div>
+    </div>
+  </section>
+</div>
+
+<section class="panel" style="margin-top:4px">
+  <div class="panel__head">
+    <h2>Governing Body &mdash; Official Desks</h2>
+    <span class="rule-ref">Form-XVII public view</span>
+  </div>
+  <div class="panel__body" style="padding:0">
+    <div class="table-scroll">
+      <table class="responsive">
+        <thead>
+          <tr><th>Designation</th><th>Name</th><th>Portfolio</th><th>Official contact</th></tr>
+        </thead>
+        <tbody>
+          {% for c in committee %}
+          <tr>
+            <td data-label="Designation"><span class="tag">{{ c.designation_label }}</span></td>
+            <td data-label="Name"><strong>{{ c.full_name }}</strong></td>
+            <td data-label="Portfolio" class="small">{{ c.portfolio or '-' }}</td>
+            <td data-label="Official contact">
+              {% if c.show_contact %}
+              <a class="small mono" href="mailto:{{ c.public_contact_email }}">{{ c.public_contact_email }}</a>
+              {% else %}
+              <span class="rule-ref">Via society desk</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endblock %}

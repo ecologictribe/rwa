@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+{% block title %}Committee & Governance Dashboard -- {{ society.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <span class="tag">Form-XVII Public View</span>
+  <span class="tag tag--muted">Zero login required</span>
+  <h1>Committee Progress &amp; Accountability</h1>
+  <p>
+    Composition, statutory tenure, District Registrar filing health and the
+    resolution-linked civic delivery ledger of the Governing Body. Resident PII
+    is never displayed in this zone.
+  </p>
+</div>
+
+{# ---- Scorecard ---- #}
+<div class="stat-strip" style="margin-bottom:20px">
+  <div class="stat">
+    <div class="stat__value">{{ active_members }}</div>
+    <div class="stat__label">Active members</div>
+    <div class="stat__note">
+      {% if active_members > collegium_threshold %}
+      <span class="pill pill--due">[DUE] Collegium mode active</span>
+      {% else %}
+      <span class="pill pill--ok">[OK] Below {{ collegium_threshold }} threshold</span>
+      {% endif %}
+    </div>
+  </div>
+  {% if stats %}
+  <div class="stat">
+    <div class="stat__value">{{ stats.term_avg_pct }}%</div>
+    <div class="stat__label">Term elapsed (avg)</div>
+    <div class="stat__note">{{ stats.term_days_left }} days to 3-year ceiling (Sec. 34(3))</div>
+  </div>
+  <div class="stat">
+    <div class="stat__value">{{ stats.meetings_held }}/{{ stats.meetings_required }}</div>
+    <div class="stat__label">Quarterly meetings</div>
+    <div class="stat__note">Minimum once per quarter (Sec. 36(1))</div>
+  </div>
+  <div class="stat">
+    <div class="stat__value">{{ stats.filings_due }}</div>
+    <div class="stat__label">Form-XVII filings pending</div>
+    <div class="stat__note">
+      {% if stats.filings_overdue %}<span class="pill pill--over">[X] {{ stats.filings_overdue }} overdue</span>
+      {% else %}<span class="pill pill--ok">[OK] none overdue</span>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+  {% if sla and sla.total %}
+  <div class="stat">
+    <div class="stat__value">{{ ((sla.resolved or 0) * 100 // sla.total) }}%</div>
+    <div class="stat__label">Helpdesk SLA</div>
+    <div class="stat__note">Median {{ '%.1f' % (sla.mean_days or 0) }} days turnaround</div>
+  </div>
+  {% endif %}
+</div>
+
+{# ---- Term elapsed meter ---- #}
+{% if stats %}
+<div class="panel">
+  <div class="meter-label">
+    <span>Committee term elapsed &mdash; statutory ceiling 3 years (Sec. 34(3))</span>
+    <span>{{ stats.term_avg_pct }}%</span>
+  </div>
+  <div class="meter" role="img" aria-label="Term {{ stats.term_avg_pct }} percent elapsed">
+    <span class="meter__fill meter__fill--accent" style="width: {{ stats.term_avg_pct }}%"></span>
+  </div>
+  <p class="rule-ref mb-0" style="margin-top:6px">
+    {{ stats.term_days_left }} days remaining before the maximum tenure expires
+  </p>
+</div>
+{% endif %}
+
+{# ---- Filter tabs ---- #}
+<nav class="tabs" aria-label="Committee filter" style="margin-top:22px">
+  <a href="/governance?filter=all" {% if active_filter == 'all' %}aria-current="page"{% endif %}>All Members</a>
+  <a href="/governance?filter=elected_bearers" {% if active_filter == 'elected_bearers' %}aria-current="page"{% endif %}>Elected Office-Bearers</a>
+  <a href="/governance?filter=elected_executive" {% if active_filter == 'elected_executive' %}aria-current="page"{% endif %}>Elected Executive Members</a>
+  <a href="/governance?filter=nominated" {% if active_filter == 'nominated' %}aria-current="page"{% endif %}>Nominated / Co-Opted</a>
+</nav>
+
+<div class="tab-panel">
+  {% if committee %}
+  <div class="grid grid--wide">
+    {% for c in committee %}
+    <article class="card">
+      <div class="badge-row">
+        <span class="tag">{{ c.designation_label }}</span>
+        <span class="tag {% if c.selection_mode == 'NOMINATED_COOPTED' %}tag--muted{% else %}tag--positive{% endif %}">
+          {{ c.selection_label }}
+        </span>
+        <span class="tag tag--muted">{{ c.election_or_cooption_ref }}</span>
+      </div>
+
+      <h3 class="card__title">{{ c.full_name }}</h3>
+      <p class="card__meta"><strong>Portfolio:</strong> {{ c.portfolio or 'Not assigned' }}</p>
+      {% if c.public_bio %}
+      <p class="small muted mb-0">{{ c.public_bio }}</p>
+      {% endif %}
+
+      <dl class="meta">
+        <dt>Term start</dt><dd class="mono">{{ c.term_start_date }}</dd>
+        <dt>Term end</dt><dd class="mono">{{ c.term_end_date }} (max 3 yrs)</dd>
+        <dt>Remaining</dt>
+        <dd class="mono">
+          {% if c.term_days_left <= 0 %}<span class="pill pill--over">[X] EXPIRED</span>
+          {% elif c.term_days_left < 90 %}<span class="pill pill--due">[DUE] {{ c.term_days_left }} days</span>
+          {% else %}{{ c.term_days_left }} days{% endif %}
+        </dd>
+        <dt>Form</dt><dd class="mono">{{ c.statutory_form_type.replace('_','-') }}</dd>
+      </dl>
+
+      <div class="meter-label" style="margin-top:8px">
+        <span>Term elapsed</span><span>{{ c.term_pct }}%</span>
+      </div>
+      <div class="meter" role="img" aria-label="Term {{ c.term_pct }} percent elapsed">
+        <span class="meter__fill" style="width: {{ c.term_pct }}%"></span>
+      </div>
+
+      <div class="badge-row" style="margin-top:8px">
+        <span class="pill {{ c.filing_class }}">{{ c.filing_shape }} {{ c.filing_label }}</span>
+        <span class="tag tag--muted">Rule 19</span>
+      </div>
+
+      {% if c.show_contact and c.public_contact_email %}
+      <a class="small" href="mailto:{{ c.public_contact_email }}">{{ c.public_contact_email }}</a>
+      {% else %}
+      <p class="rule-ref mb-0">Official desk contact only -- personal numbers withheld</p>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="muted">No committee members match this filter.</p>
+  {% endif %}
+</div>
+
+{# ---- Filing status pills ---- #}
+<div class="panel" style="margin-top:24px">
+  <div class="panel__head"><h2>Statutory Filing Status</h2><span class="rule-ref">Rule 13 &amp; Rule 19</span></div>
+  <div class="panel__body">
+    <div class="badge-row">
+      <span class="pill pill--ok">[OK] FORM-XV Annual return</span>
+      <span class="pill {% if stats and stats.filings_overdue %}pill--over{% else %}pill--due{% endif %}">
+        {% if stats and stats.filings_overdue %}[X]{% else %}[DUE]{% endif %}
+        FORM-XVII New appointment (30 days)
+      </span>
+      <span class="pill pill--due">[DUE] FORM-XVII-A Cessation (30 days)</span>
+      <span class="pill pill--ok">[OK] FORM-XVII-B Annual (60 days)</span>
+    </div>
+    <p class="rule-ref" style="margin-top:10px">
+      Filing countdowns are enforced server-side. A Governing Body addition beyond
+      21 members or a tenure beyond 3 years is rejected at the application layer
+      (Sec. 34(1)-(4)).
+    </p>
+  </div>
+</div>
+
+{# ---- Civic works ledger ---- #}
+<section aria-labelledby="ledger-h" style="margin-top:26px">
+  <div class="page-head" style="border-bottom-width:1px">
+    <h2 id="ledger-h">Resolution-Linked Civic Works &amp; Manifesto Tracker</h2>
+    <p>Execution stage runs PROPOSED &rarr; APPROVED IN GB/GBM &rarr; IN PROGRESS &rarr;
+       COMPLETED &amp; VERIFIED. Each row links to its authorizing Minutes of Meeting.</p>
+  </div>
+
+  <div class="table-scroll">
+    <table class="responsive">
+      <thead>
+        <tr>
+          <th>Initiative</th>
+          <th>Resolution</th>
+          <th>Stage</th>
+          <th class="num">Progress</th>
+          <th>Lead</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for i in initiatives %}
+        <tr>
+          <td data-label="Initiative">
+            <strong>{{ i.title }}</strong>
+            <div class="small muted">{{ i.summary }}</div>
+            {% if i.milestone_notes %}<div class="rule-ref">{{ i.milestone_notes }}</div>{% endif %}
+          </td>
+          <td data-label="Resolution">
+            {% if i.resolution_reference %}
+            <a class="mono" href="/notices">{{ i.resolution_reference }}</a>
+            <div class="rule-ref">Sec. 37 confirmed MoM</div>
+            {% else %}<span class="faint">Pending</span>{% endif %}
+          </td>
+          <td data-label="Stage">
+            <span class="tag {% if i.status == 'COMPLETED' %}tag--positive{% elif i.status == 'IN_PROGRESS' %}tag--accent{% endif %}">
+              {{ i.status_label }}
+            </span>
+            <div class="rule-ref">Stage {{ i.stage_index + 1 }} of 4</div>
+          </td>
+          <td data-label="Progress" class="num">
+            <div class="meter" style="min-width:90px" role="img" aria-label="{{ i.completion_pct }} percent">
+              <span class="meter__fill {% if i.completion_pct == 100 %}meter__fill--positive{% endif %}"
+                    style="width: {{ i.completion_pct }}%"></span>
+            </div>
+            <span class="mono">{{ i.completion_pct }}%</span>
+          </td>
+          <td data-label="Lead">
+            {{ i.lead_name or 'Governing Body' }}
+            {% if i.lead_designation %}<div class="rule-ref">{{ i.lead_designation.replace('_',' ').title() }}</div>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+{# ---- Circulars digest ---- #}
+<section aria-labelledby="digest-h" style="margin-top:26px">
+  <div class="page-head" style="border-bottom-width:1px">
+    <h2 id="digest-h">Public Circulars &amp; Confirmed Minutes Digest</h2>
+  </div>
+  <div class="grid">
+    {% for n in circulars %}
+    <article class="card">
+      <div class="badge-row">
+        <span class="tag {% if n.priority in ('URGENT','SHUTDOWN') %}tag--accent{% endif %}">{{ n.priority.replace('_',' ') }}</span>
+        <span class="tag tag--muted mono">{{ n.published_at[:10] }}</span>
+      </div>
+      <h3 class="card__title"><a href="/notices/{{ n.slug }}">{{ n.title }}</a></h3>
+      <div class="btn-group">
+        <button class="btn btn--sm" type="button"
+                onclick="navigator.share ? navigator.share({title: {{ n.title|tojson }}, url: location.origin + '/notices/{{ n.slug }}'}) : null">
+          Share
+        </button>
+        <a class="btn btn--sm" href="https://wa.me/?text={{ (n.title ~ ' -- ' ~ society.name)|urlencode }}"
+           target="_blank" rel="noopener">WhatsApp</a>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,101 @@
+{# Tab 5 -- Versioned Document & MoM Vault Metrics (spec 5.2) #}
+<div class="stat-strip" style="margin-bottom:18px">
+  <div class="stat">
+    <div class="stat__value">{{ docs | length }}</div>
+    <div class="stat__label">Total documents</div>
+    <div class="stat__note">Minutes, bye-laws, circulars, forms</div>
+  </div>
+  <div class="stat">
+    <div class="stat__value">{{ pending | length }}</div>
+    <div class="stat__label">Pending Sec. 37 sign-off</div>
+    <div class="stat__note">
+      {% if pending %}<span class="pill pill--due">[DUE] Chairman / Secretary</span>
+      {% else %}<span class="pill pill--ok">[OK] All signed</span>{% endif %}
+    </div>
+  </div>
+  <div class="stat">
+    <div class="stat__value">{{ total_versions }}</div>
+    <div class="stat__label">Version revisions</div>
+    <div class="stat__note">Published versions are never overwritten</div>
+  </div>
+  <div class="stat">
+    <div class="stat__value">{{ superseded | length }}</div>
+    <div class="stat__label">Superseded copies</div>
+    <div class="stat__note">Retained as archive downloads</div>
+  </div>
+</div>
+
+<section class="panel">
+  <div class="panel__head">
+    <h2>Vault inventory</h2>
+    <a class="btn btn--sm" href="/admin/vault">Manage &amp; sign off</a>
+  </div>
+  <div class="panel__body" style="padding:0">
+    <div class="table-scroll">
+      <table class="responsive">
+        <thead>
+          <tr>
+            <th>Document</th><th>Category</th><th class="num">Versions</th>
+            <th>Quorum</th><th>Sign-off</th><th>Visibility</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for d in docs %}
+          <tr>
+            <td data-label="Document">
+              <strong>{{ d.title }}</strong>
+              <div class="rule-ref">Uploaded by {{ d.creator }}</div>
+            </td>
+            <td data-label="Category"><span class="tag">{{ d.doc_category.replace('_',' ') }}</span></td>
+            <td data-label="Versions" class="num mono">v{{ d.versions }}</td>
+            <td data-label="Quorum" class="small">
+              {% if d.quorum_required is none %}<span class="faint">n/a</span>
+              {% elif d.quorum_ok %}<span class="pill pill--ok">[OK] {{ d.quorum_present }}/{{ d.quorum_required }}</span>
+              {% else %}<span class="pill pill--over">[X] {{ d.quorum_present }}/{{ d.quorum_required }}</span>{% endif %}
+            </td>
+            <td data-label="Sign-off">
+              {% if d.pending_signoff %}
+              <span class="pill pill--due">[DUE] Sec. 37(2)</span>
+              {% else %}
+              <span class="pill pill--ok">[OK] Dual signed</span>
+              {% endif %}
+              {% if d.confirmed_in_next_meeting_date %}
+              <div class="rule-ref">Confirmed {{ d.confirmed_in_next_meeting_date }} &mdash; Sec. 37(3)</div>
+              {% endif %}
+            </td>
+            <td data-label="Visibility" class="small">{{ d.visibility.replace('_',' ') }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel__head">
+    <h2>Superseded archive copies</h2>
+    <span class="rule-ref">Watermarked ARCHIVE COPY</span>
+  </div>
+  <div class="panel__body" style="padding:0">
+    {% if superseded %}
+    <div class="table-scroll">
+      <table class="responsive">
+        <thead><tr><th>Document</th><th class="num">Version</th><th>Change summary</th><th>SHA-256</th></tr></thead>
+        <tbody>
+          {% for v in superseded %}
+          <tr>
+            <td data-label="Document" class="small">{{ v.title }}</td>
+            <td data-label="Version" class="num mono">v{{ v.version_number }}</td>
+            <td data-label="Change summary" class="small">{{ v.change_summary }}</td>
+            <td data-label="SHA-256" class="mono" style="font-size:0.7rem">{{ v.sha256_checksum[:16] }}&hellip;</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div style="padding:14px"><span class="pill pill--ok">[OK] No superseded revisions yet.</span></div>
+    {% endif %}
+  </div>
+</section>

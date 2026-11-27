@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+{% block title %}My Portal -- {{ society.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <span class="tag tag--accent">Member Workspace</span>
+  <span class="tag">{{ member.role.replace('_',' ').title() }}</span>
+  {% if member.member_serial_no %}<span class="tag tag--muted">Serial {{ member.member_serial_no }}</span>{% endif %}
+  <h1>Welcome, {{ member.full_name }}</h1>
+  <p>Your unit, notices, helpdesk tickets and approved documents. This workspace
+     performs no accounting, billing or payment functions.</p>
+</div>
+
+{# ---- Form-XII 15-day statutory countdown (Sec. 18(1)) ---- #}
+{% if form_xii_due is not none %}
+<div class="alert {% if form_xii_due < 0 %}alert--error{% else %}alert--ok{% endif %}" role="status">
+  <p class="alert__title">Form-XII register entry</p>
+  <p class="mb-0">
+    {% if form_xii_due < 0 %}
+      The 15-day statutory window for committing your record to the Register of
+      Members expired {{ -form_xii_due }} day(s) ago.
+      <span class="tag tag--accent">Sec. 18(1) &middot; Rule 12</span>
+    {% else %}
+      {{ form_xii_due }} day(s) remaining to commit your record to the Register of
+      Members (Form-XII).
+      <span class="tag tag--muted">Sec. 18(1) &middot; Rule 12</span>
+    {% endif %}
+  </p>
+</div>
+{% endif %}
+
+<div class="stat-strip" style="margin-bottom:20px">
+  <div class="stat">
+    <div class="stat__value">{{ unit.canonical_code if unit else '--' }}</div>
+    <div class="stat__label">Your unit</div>
+    <div class="stat__note">Block {{ unit.block_tower if unit else '-' }} &middot; {{ unit.occupancy_status.replace('_',' ') if unit else '' }}</div>
+  </div>
+  <div class="stat">
+    <div class="stat__value">{{ tickets | selectattr('status', 'equalto', 'OPEN') | list | length +
+                               tickets | selectattr('status', 'equalto', 'REOPENED') | list | length }}</div>
+    <div class="stat__label">Open tickets</div>
+    <div class="stat__note">{{ tickets | length }} raised in total</div>
+  </div>
+  <div class="stat">
+    <div class="stat__value">{{ docs | length }}</div>
+    <div class="stat__label">Documents available</div>
+    <div class="stat__note">Minutes, bye-laws and circulars</div>
+  </div>
+  <div class="stat">
+    <div class="stat__value">{{ notices | length }}</div>
+    <div class="stat__label">Recent notices</div>
+    <div class="stat__note">Including urgent circulars</div>
+  </div>
+</div>
+
+<div class="grid grid--wide">
+  {# ---- Raise a ticket ---- #}
+  <section class="panel" id="raise-ticket">
+    <div class="panel__head"><h2>Raise a Complaint</h2><span class="rule-ref">Zero billing</span></div>
+    <div class="panel__body">
+      <form method="post" action="/portal/tickets">
+        <div class="field-row">
+          <div class="field">
+            <label for="category">Category</label>
+            <select id="category" name="category" required>
+              {% for c in categories %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="field">
+            <label for="location_scope">Location</label>
+            <select id="location_scope" name="location_scope">
+              <option value="COMMON_AREA">Common area</option>
+              <option value="UNIT">Inside my unit</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label for="subject">Subject</label>
+          <input type="text" id="subject" name="subject" required minlength="5"
+                 placeholder="Short summary of the problem">
+        </div>
+        <div class="field">
+          <label for="description">Description</label>
+          <textarea id="description" name="description" required minlength="10"
+                    placeholder="What is happening, where, and since when"></textarea>
+        </div>
+        <div class="field">
+          <label for="priority">Priority</label>
+          <select id="priority" name="priority">
+            <option value="LOW">Low</option>
+            <option value="MEDIUM" selected>Medium</option>
+            <option value="HIGH">High</option>
+            <option value="URGENT">Urgent</option>
+          </select>
+        </div>
+        <button class="btn btn--primary" type="submit">Submit ticket</button>
+        <p class="rule-ref" style="margin-top:10px">
+          Lifecycle: OPEN &rarr; ACKNOWLEDGED &rarr; IN_PROGRESS &rarr;
+          AWAITING_CONFIRMATION &rarr; RESOLVED.
+        </p>
+      </form>
+    </div>
+  </section>
+
+  {# ---- My unit & occupancy lineage (spec 6.1) ---- #}
+  <section class="panel">
+    <div class="panel__head"><h2>My Unit</h2><span class="rule-ref">Occupancy lineage</span></div>
+    <div class="panel__body">
+      {% if unit %}
+      <dl class="meta">
+        <dt>Unit code</dt><dd class="mono">{{ unit.canonical_code }}</dd>
+        <dt>Block / tower</dt><dd>{{ unit.block_tower }}</dd>
+        <dt>Type</dt><dd>{{ unit.unit_type }}</dd>
+        <dt>Occupancy</dt><dd>{{ unit.occupancy_status.replace('_',' ').title() }}</dd>
+        <dt>Parking</dt><dd class="mono">{{ unit.parking_slot or 'Not allotted' }}</dd>
+      </dl>
+      <hr class="soft">
+      <h3>Ownership &amp; occupancy history</h3>
+      {% if lineage %}
+      <div class="table-scroll">
+        <table class="responsive">
+          <thead><tr><th>Person</th><th>Relation</th><th>Valid from</th></tr></thead>
+          <tbody>
+            {% for l in lineage %}
+            <tr>
+              <td data-label="Person">{{ l.full_name }}</td>
+              <td data-label="Relation"><span class="tag">{{ l.edge_label }}</span></td>
+              <td data-label="Valid from" class="mono small">{{ l.meta.get('from', '-') }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="muted small mb-0">No recorded lineage edges for this unit.</p>
+      {% endif %}
+      <p class="rule-ref" style="margin-top:10px">
+        Path traversal over the entity graph (Sec. 22 dispute inquiries,
+        Form-X admission vetting).
+      </p>
+      {% else %}
+      <p class="muted mb-0">Your account is not yet linked to a unit. Contact the
+         society desk to complete the mapping.</p>
+      {% endif %}
+      <div class="btn-group" style="margin-top:14px">
+        <a class="btn btn--sm" href="/portal/profile">My profile &amp; Form-XI card</a>
+        <a class="btn btn--sm" href="/portal/documents">Document vault</a>
+      </div>
+    </div>
+  </section>
+</div>
+
+{# ---- Notices ---- #}
+<section style="margin-top:6px">
+  <div class="page-head" style="border-bottom-width:1px">
+    <h2>Notices for You</h2>
+  </div>
+  <div class="grid">
+    {% for n in notices %}
+    <article class="card">
+      <div class="badge-row">
+        <span class="tag {% if n.priority in ('URGENT','SHUTDOWN') %}tag--accent{% endif %}">{{ n.priority.replace('_',' ') }}</span>
+        <span class="tag tag--muted mono">{{ n.published_at[:10] }}</span>
+      </div>
+      <h3 class="card__title"><a href="/notices/{{ n.slug }}">{{ n.title }}</a></h3>
+    </article>
+    {% else %}
+    <p class="muted">No notices right now.</p>
+    {% endfor %}
+  </div>
+</section>
+
+{# ---- My tickets ---- #}
+<section style="margin-top:20px">
+  <div class="page-head" style="border-bottom-width:1px">
+    <h2>My Tickets</h2>
+  </div>
+  {% if tickets %}
+  <div class="table-scroll">
+    <table class="responsive">
+      <thead>
+        <tr><th>#</th><th>Subject</th><th>Category</th><th>Status</th><th>Raised</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for t in tickets %}
+        <tr>
+          <td data-label="Ticket" class="mono">{{ t.ticket_number }}</td>
+          <td data-label="Subject">{{ t.subject }}</td>
+          <td data-label="Category" class="small">{{ t.category }}</td>
+          <td data-label="Status">
+            {% if t.status in ('OPEN','REOPENED') %}<span class="pill pill--open">{{ t.status }}</span>
+            {% elif t.status == 'RESOLVED' %}<span class="pill pill--ok">[OK] RESOLVED</span>
+            {% else %}<span class="pill pill--due">{{ t.status }}</span>{% endif %}
+          </td>
+          <td data-label="Raised" class="mono small">{{ t.created_at[:10] }}</td>
+          <td data-label="Action">
+            {% if t.status == 'AWAITING_CONFIRMATION' %}
+            <form method="post" action="/portal/tickets/{{ t.id }}/confirm" style="display:inline">
+              <button class="btn btn--sm btn--primary" type="submit">Confirm resolved</button>
+            </form>
+            {% else %}<span class="rule-ref">--</span>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="muted">You have not raised any tickets yet.</p>
+  {% endif %}
+  <a class="btn" href="/portal/tickets" style="margin-top:12px">All tickets</a>
+</section>
+
+{# ---- Documents ---- #}
+<section style="margin-top:20px">
+  <div class="page-head" style="border-bottom-width:1px">
+    <h2>Approved Documents</h2>
+    <p>Published versions are never overwritten. Superseded revisions remain
+       downloadable with an archive watermark (spec 5.3).</p>
+  </div>
+  <div class="grid">
+    {% for d in docs %}
+    <article class="card">
+      <div class="badge-row">
+        <span class="tag">{{ d.doc_category.replace('_',' ') }}</span>
+        <span class="tag tag--muted">v{{ d.ver or 1 }}</span>
+        <span class="tag {% if d.visibility == 'PUBLIC' %}tag--positive{% else %}tag--muted{% endif %}">
+          {{ d.visibility.replace('_',' ') }}
+        </span>
+      </div>
+      <h3 class="card__title">{{ d.title }}</h3>
+      {% if d.meeting_date %}<p class="card__meta mono">Meeting {{ d.meeting_date }}</p>{% endif %}
+      <div class="badge-row">
+        <span class="pill {% if d.chairman_signed %}pill--ok{% else %}pill--due{% endif %}">
+          {% if d.chairman_signed %}[OK]{% else %}[DUE]{% endif %} Chairman
+        </span>
+        <span class="pill {% if d.secretary_signed %}pill--ok{% else %}pill--due{% endif %}">
+          {% if d.secretary_signed %}[OK]{% else %}[DUE]{% endif %} Secretary
+        </span>
+      </div>
+      <p class="rule-ref mb-0">Sec. 37 dual sign-off</p>
+    </article>
+    {% else %}
+    <p class="muted">No documents published yet.</p>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

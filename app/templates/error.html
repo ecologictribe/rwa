@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}{{ error_code }} -- {{ society.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <span class="tag tag--accent">HTTP {{ error_code }}</span>
+  <h1>{{ error_title }}</h1>
+  <p>{{ error_text }}</p>
+</div>
+<div class="btn-group">
+  <a class="btn btn--primary" href="/">Return to the public dashboard</a>
+  <a class="btn" href="/notices">View notices</a>
+  <a class="btn btn--ghost" href="/contacts">Emergency contacts</a>
+</div>
+{% endblock %}

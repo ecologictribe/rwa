@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Reset Password -- {{ society.name }}{% endblock %}
+{% block content %}
+<div class="wrap--narrow" style="margin:0 auto">
+  <div class="page-head">
+    <span class="tag">Password Reset</span>
+    <span class="tag tag--muted">No SMS OTP</span>
+    <h1>Reset Your Password</h1>
+    <p>Two channels are supported: an emailed magic reset token, or an in-person
+       reset code issued by the society clerk after verifying your Form-XI ID or
+       physical registry entry.</p>
+  </div>
+
+  {% if sent %}
+  <div class="alert alert--ok" role="status">
+    <p class="alert__title">Request recorded</p>
+    <p class="mb-0">If an account exists for that email, a reset token has been
+       issued. It expires in 2 hours. If email delivery is not configured on this
+       deployment, collect the code in person at the society desk.</p>
+  </div>
+  {% endif %}
+
+  {% if error %}
+  <div class="alert alert--error" role="alert">
+    <p class="alert__title">Reset failed</p>
+    <p class="mb-0">{{ error }}</p>
+  </div>
+  {% endif %}
+
+  <form method="post" action="/forgot" class="panel">
+    <div class="panel__head"><h2>Request a reset token</h2><span class="rule-ref">Email magic token</span></div>
+    <div class="panel__body">
+      <div class="field">
+        <label for="email">Registered email</label>
+        <input type="email" id="email" name="email" required placeholder="you@example.com">
+      </div>
+      <div class="btn-group">
+        <button class="btn btn--primary" type="submit">Send reset token</button>
+        <a class="btn btn--ghost" href="/login">Back to sign in</a>
+      </div>
+    </div>
+  </form>
+
+  <form method="post" action="/reset" class="panel">
+    <div class="panel__head"><h2>Have a code?</h2><span class="rule-ref">Token or in-person code</span></div>
+    <div class="panel__body">
+      <div class="field-row">
+        <div class="field">
+          <label for="r_email">Registered email</label>
+          <input type="email" id="r_email" name="email" required placeholder="you@example.com">
+        </div>
+        <div class="field">
+          <label for="token">Reset code</label>
+          <input type="text" id="token" name="token" required placeholder="8-character code"
+                 autocapitalize="characters">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="r_password">New password</label>
+          <input type="password" id="r_password" name="password" required
+                 minlength="8" autocomplete="new-password">
+        </div>
+        <div class="field">
+          <label for="r_confirm">Confirm password</label>
+          <input type="password" id="r_confirm" name="password_confirm" required
+                 minlength="8" autocomplete="new-password">
+        </div>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn--primary" type="submit">Set new password</button>
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Document Vault -- {{ society.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <span class="tag">Versioned Document Vault</span>
+  <span class="tag tag--muted">SHA-256 checksummed</span>
+  <h1>Minutes, Bye-Laws &amp; Circulars</h1>
+  <p>Published versions are never overwritten. Every upload creates version
+     <span class="mono">v(N+1)</span> with a mandatory change summary; prior
+     revisions remain downloadable as superseded archive copies (spec 5.3).</p>
+</div>
+
+<div class="btn-group" style="margin-bottom:18px">
+  <a class="btn" href="/portal">Back to portal</a>
+  <a class="btn btn--ghost" href="/notices">Public circulars</a>
+</div>
+
+{% if docs %}
+<div class="grid grid--wide">
+  {% for d in docs %}
+  <article class="card">
+    <div class="badge-row">
+      <span class="tag">{{ d.doc_category.replace('_',' ') }}</span>
+      <span class="tag tag--muted">v{{ d.versions or 1 }}</span>
+      <span class="tag {% if d.visibility == 'PUBLIC' %}tag--positive{% endif %}">
+        {{ d.visibility.replace('_',' ') }}
+      </span>
+    </div>
+    <h3 class="card__title">{{ d.title }}</h3>
+
+    <dl class="meta">
+      {% if d.meeting_date %}<dt>Meeting</dt><dd class="mono">{{ d.meeting_date }}</dd>{% endif %}
+      {% if d.quorum_required %}
+      <dt>Quorum</dt>
+      <dd>
+        {{ d.quorum_present }}/{{ d.quorum_required }}
+        {% if (d.quorum_present or 0) >= d.quorum_required %}
+        <span class="pill pill--ok">[OK] Met</span>
+        {% else %}<span class="pill pill--over">[X] Short</span>{% endif %}
+        <span class="rule-ref">Rule 16 &mdash; 40% minimum</span>
+      </dd>
+      {% endif %}
+      <dt>Chairman</dt>
+      <dd>{% if d.chairman_signed %}<span class="pill pill--ok">[OK] Signed</span>
+          {% else %}<span class="pill pill--due">[DUE] Pending</span>{% endif %}</dd>
+      <dt>Secretary</dt>
+      <dd>{% if d.secretary_signed %}<span class="pill pill--ok">[OK] Signed</span>
+          {% else %}<span class="pill pill--due">[DUE] Pending</span>{% endif %}</dd>
+      {% if d.confirmed_in_next_meeting_date %}
+      <dt>Confirmed</dt><dd class="mono">{{ d.confirmed_in_next_meeting_date }}</dd>
+      {% endif %}
+    </dl>
+
+    <div class="btn-group">
+      <a class="btn btn--sm" href="/portal/documents">Download current (v{{ d.versions or 1 }})</a>
+    </div>
+    <p class="rule-ref mb-0">
+      {% if d.doc_category.startswith('MOM') %}Sec. 37(2) dual sign-off &middot; Sec. 37(3) confirmation
+      {% else %}Member right of inspection: Sec. 19, Sec. 20(3){% endif %}
+    </p>
+  </article>
+  {% endfor %}
+</div>
+{% else %}
+<div class="panel"><p class="mb-0 muted">No documents have been published to the vault yet.</p></div>
+{% endif %}
+{% endblock %}

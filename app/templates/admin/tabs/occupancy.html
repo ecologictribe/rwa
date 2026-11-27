@@ -1,0 +1,98 @@
+{# Tab 2 -- Occupancy & Directory Analytics (spec 5.2) #}
+<div class="stat-strip" style="margin-bottom:18px">
+  {% for t in totals %}
+  <div class="stat">
+    <div class="stat__value">{{ t.n }}</div>
+    <div class="stat__label">{{ t.occupancy_status.replace('_',' ') }}</div>
+    <div class="stat__note">{{ ((t.n * 100) // total_units) }}% of {{ total_units }} units</div>
+  </div>
+  {% endfor %}
+  <div class="stat">
+    <div class="stat__value">{{ unverified | length }}</div>
+    <div class="stat__label">Unverified accounts</div>
+    <div class="stat__note">PENDING admission / claim</div>
+  </div>
+  <div class="stat">
+    <div class="stat__value">{{ vehicles }}</div>
+    <div class="stat__label">Registered vehicles</div>
+    <div class="stat__note">
+      {% if parking.slots %}
+      {{ ((parking.parked * 100) // parking.slots) }}% slot utilisation
+      {% else %}No slots allotted{% endif %}
+    </div>
+  </div>
+</div>
+
+<section class="panel">
+  <div class="panel__head"><h2>Distribution by Tower</h2><span class="rule-ref">Unit master</span></div>
+  <div class="panel__body" style="padding:0">
+    <div class="table-scroll">
+      <table class="responsive">
+        <thead><tr><th>Block / Tower</th><th>Owner occupied</th><th>Tenant occupied</th><th>Vacant</th></tr></thead>
+        <tbody>
+          {% set towers = by_tower | map(attribute='block_tower') | unique | list %}
+          {% for tower in towers %}
+          <tr>
+            <td data-label="Tower"><span class="tag">Tower {{ tower }}</span></td>
+            {% for status in ['OWNER_OCCUPIED','TENANT_OCCUPIED','VACANT'] %}
+            <td data-label="{{ status.replace('_',' ') }}" class="num">
+              {% set row = by_tower | selectattr('block_tower', 'equalto', tower)
+                                   | selectattr('occupancy_status', 'equalto', status) | list %}
+              {{ row[0].n if row else 0 }}
+            </td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel__head">
+    <h2>Occupancy ratio meter</h2>
+    <span class="rule-ref">Owner vs tenant vs vacant</span>
+  </div>
+  <div class="panel__body">
+    {% for t in totals %}
+    <div class="meter-label">
+      <span>{{ t.occupancy_status.replace('_',' ') }}</span>
+      <span>{{ t.n }} / {{ total_units }}</span>
+    </div>
+    <div class="meter" role="img" aria-label="{{ t.occupancy_status }} {{ t.n }} of {{ total_units }}">
+      <span class="meter__fill {% if t.occupancy_status == 'OWNER_OCCUPIED' %}meter__fill--positive{% elif t.occupancy_status == 'VACANT' %}meter__fill--caution{% endif %}"
+            style="width: {{ (t.n * 100) // total_units }}%"></span>
+    </div>
+    <div style="height:10px"></div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel__head">
+    <h2>Unverified accounts</h2>
+    <a class="btn btn--sm" href="/admin/directory">Open directory</a>
+  </div>
+  <div class="panel__body" style="padding:0">
+    {% if unverified %}
+    <div class="table-scroll">
+      <table class="responsive">
+        <thead><tr><th>Name</th><th>Unit</th><th>Email</th><th>Mobile</th></tr></thead>
+        <tbody>
+          {% for u in unverified %}
+          <tr>
+            <td data-label="Name">{{ u.full_name }}</td>
+            <td data-label="Unit" class="mono">{{ u.canonical_code or '-' }}</td>
+            <td data-label="Email" class="small">{{ u.email }}</td>
+            <td data-label="Mobile" class="mono small">{{ u.mobile_number }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p style="padding:14px" class="muted mb-0">Every account is verified.</p>
+    {% endif %}
+  </div>
+</section>

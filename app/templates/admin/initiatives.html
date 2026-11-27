@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}Civic Initiatives -- {{ society.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <span class="tag">Delivery Ledger</span>
+  <span class="tag tag--muted">Resolution-linked, Sec. 37</span>
+  <h1>Civic Initiatives &amp; Manifesto Tracker</h1>
+  <p>Each initiative is authorised by a General Body resolution and shown on the
+     public dashboard with its completion percentage and milestone proof.</p>
+</div>
+
+<div class="btn-group" style="margin-bottom:18px">
+  <a class="btn" href="/admin">Back to dashboard</a>
+  <a class="btn" href="/governance#ledger-h">Public view</a>
+</div>
+
+<div class="grid grid--wide">
+  <form method="post" action="/admin/initiatives" class="panel">
+    <div class="panel__head"><h2>New initiative</h2><span class="rule-ref">Public ledger</span></div>
+    <div class="panel__body">
+      <div class="field">
+        <label for="title">Title</label>
+        <input type="text" id="title" name="title" required
+               placeholder="Solar Rooftop -- Phase II">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="category">Category</label>
+          <input type="text" id="category" name="category" required
+                 placeholder="Sustainability, Utilities, Amenities...">
+        </div>
+        <div class="field">
+          <label for="resolution_reference">Authorizing resolution</label>
+          <input type="text" id="resolution_reference" name="resolution_reference"
+                 placeholder="GB-RES-2026-04">
+          <p class="field__hint">Links to the confirmed Minutes of Meeting (Sec. 37).</p>
+        </div>
+      </div>
+      <div class="field">
+        <label for="summary">Summary</label>
+        <textarea id="summary" name="summary" required rows="3"
+                  placeholder="What is being delivered and why"></textarea>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="status">Stage</label>
+          <select id="status" name="status">
+            {% for s in statuses %}<option value="{{ s }}">{{ s.replace('_',' ') }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="completion_pct">Completion %</label>
+          <input type="number" id="completion_pct" name="completion_pct"
+                 min="0" max="100" value="0">
+        </div>
+        <div class="field">
+          <label for="lead_committee_member_id">Lead</label>
+          <select id="lead_committee_member_id" name="lead_committee_member_id">
+            <option value="">Governing Body</option>
+            {% for m in committee %}
+            <option value="{{ m.id }}">{{ m.full_name }} -- {{ m.designation.replace('_',' ').title() }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <button class="btn btn--primary" type="submit">Add initiative</button>
+    </div>
+  </form>
+
+  <section class="panel">
+    <div class="panel__head"><h2>Tracked ({{ rows | length }})</h2></div>
+    <div class="panel__body stack">
+      {% for i in rows %}
+      <article class="card">
+        <div class="badge-row">
+          <span class="tag">{{ i.category }}</span>
+          <span class="tag {% if i.status == 'COMPLETED' %}tag--positive{% elif i.status == 'IN_PROGRESS' %}tag--accent{% endif %}">
+            {{ i.status.replace('_',' ') }}
+          </span>
+          <span class="tag tag--muted">{{ i.resolution_reference or 'No resolution yet' }}</span>
+        </div>
+        <h3 class="card__title">{{ i.title }}</h3>
+        <p class="card__meta">{{ i.summary }}</p>
+        {% if i.lead_name %}<p class="rule-ref mb-0">Lead: {{ i.lead_name }}</p>{% endif %}
+
+        <div class="meter-label"><span>Progress</span><span>{{ i.completion_pct }}%</span></div>
+        <div class="meter" role="img" aria-label="{{ i.completion_pct }} percent">
+          <span class="meter__fill {% if i.completion_pct == 100 %}meter__fill--positive{% endif %}"
+                style="width: {{ i.completion_pct }}%"></span>
+        </div>
+
+        <form method="post" action="/admin/initiatives/{{ i.id }}/progress"
+              style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end; margin-top:6px">
+          <div class="field mb-0" style="margin:0; flex:1 1 110px">
+            <label for="pct-{{ i.id }}">New %</label>
+            <input type="number" id="pct-{{ i.id }}" name="completion_pct"
+                   min="0" max="100" value="{{ i.completion_pct }}">
+          </div>
+          <div class="field" style="margin:0; flex:1 1 150px">
+            <label for="st-{{ i.id }}">Stage</label>
+            <select id="st-{{ i.id }}" name="status">
+              {% for s in statuses %}
+              <option value="{{ s }}" {% if i.status == s %}selected{% endif %}>{{ s.replace('_',' ') }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <button class="btn btn--sm" type="submit">Update</button>
+        </form>
+      </article>
+      {% else %}
+      <p class="muted mb-0">No initiatives tracked yet.</p>
+      {% endfor %}
+    </div>
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="{{ principal.theme }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ society.name }}{% endblock %}</title>
+  <meta name="description" content="{% block description %}Resident Welfare Association governance, membership and operations portal.{% endblock %}">
+  {% if principal.csrf_token %}
+  <meta name="csrf-token" content="{{ principal.csrf_token }}">
+  {% endif %}
+  {# Zero-flicker theme: runs before first paint, no network cost. #}
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem("rwa-theme");
+        if (t) document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="stylesheet" href="{{ url_for('static', path='/css/app.css') }}">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%23f7f5ee'/><rect x='2' y='2' width='12' height='12' fill='none' stroke='%23141413' stroke-width='2'/></svg>">
+  <script src="{{ url_for('static', path='/vendor/htmx.min.js') }}" defer></script>
+  <script src="{{ url_for('static', path='/js/theme.js') }}" defer></script>
+  {% block head %}{% endblock %}
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to main content</a>
+
+<header class="site-header no-print">
+  <div class="wrap">
+    {# Global Society Identity Header -- Sec. 10(2), Rule 6 / Rule 9 #}
+    <div class="society-bar">
+      <div>
+        <p class="society-name">{{ society.name }}</p>
+        <p class="society-meta">
+          <span><strong>Reg. No.:</strong> {{ society.registration_number }}</span>
+          &nbsp;|&nbsp;
+          <span><strong>Office:</strong> {{ society.registered_office_address }}</span>
+        </p>
+        <p class="rule-ref">HRRS Act, 2012 (Haryana Act No. 1 of 2012) &middot; Sec. 10(2) identity header</p>
+      </div>
+      <div class="theme-switcher" role="group" aria-label="Colour theme">
+        {% for t in themes %}
+        <button type="button" data-theme-btn="{{ t.id }}" aria-pressed="false">{{ t.label }}</button>
+        {% endfor %}
+      </div>
+    </div>
+
+    <nav class="main-nav" aria-label="Primary">
+      <a href="/" {% if request.url.path == '/' %}aria-current="page"{% endif %}>Home</a>
+      <a href="/governance" {% if request.url.path.startswith('/governance') %}aria-current="page"{% endif %}>Governance</a>
+      <a href="/notices" {% if request.url.path.startswith('/notices') %}aria-current="page"{% endif %}>Notices</a>
+      <a href="/contacts" {% if request.url.path.startswith('/contacts') %}aria-current="page"{% endif %}>Contacts</a>
+      <a href="/apply" {% if request.url.path.startswith('/apply') %}aria-current="page"{% endif %}>Apply for Membership</a>
+      <span class="nav-spacer"></span>
+      {% if principal.is_authenticated %}
+        {% if principal.can('view_dashboard') %}
+        <a href="/admin" {% if request.url.path.startswith('/admin') %}aria-current="page"{% endif %}>Admin</a>
+        {% endif %}
+        <a href="/portal" {% if request.url.path.startswith('/portal') %}aria-current="page"{% endif %}>My Portal</a>
+        <a href="/logout">Sign Out ({{ principal.name }})</a>
+      {% else %}
+        <a href="/login" {% if request.url.path.startswith('/login') %}aria-current="page"{% endif %}>Sign In</a>
+      {% endif %}
+    </nav>
+  </div>
+</header>
+
+<main id="main" class="wrap">
+  {% if messages %}
+    {% for m in messages %}
+    <div class="alert alert--{{ 'ok' if m.kind == 'success' else 'error' }}" role="status">
+      <p class="alert__title">{{ 'Recorded' if m.kind == 'success' else 'Attention' }}</p>
+      <p class="mb-0">{{ m.text }}</p>
+    </div>
+    {% endfor %}
+  {% endif %}
+
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="site-footer no-print">
+  <div class="wrap">
+    <p class="mb-0">
+      <strong>{{ society.name }}</strong> &middot;
+      Reg. No. {{ society.registration_number }} &middot;
+      {{ society.contact_email }} &middot; {{ society.contact_phone }}
+    </p>
+    <p class="small muted mb-0">
+      Statutory registers, minutes and returns are maintained under the
+      Haryana Registration and Regulation of Societies Act, 2012 and the
+      Haryana Registration and Regulation of Societies Rules, 2012.
+      This portal performs no accounting, billing or payment functions.
+    </p>
+    <span class="rule-ref">Rule 23 verification block applies to all statutory register exports</span>
+  </div>
+</footer>
+
+{% block scripts %}{% endblock %}
+</body>
+</html>

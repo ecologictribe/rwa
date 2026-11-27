@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}Governing Body -- {{ society.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <span class="tag">Governing Body Management</span>
+  <span class="tag tag--muted">Form-XVII / XVII-A / XVII-B</span>
+  <h1>Committee Roster</h1>
+  <p>Guard rails are enforced server-side: size between {{ gb_min }} and {{ gb_max }}
+     members, mandatory President / Secretary / Treasurer, and a {{ tenure_years }}-year
+     maximum tenure (Sec. 34(1)-(4)).</p>
+</div>
+
+<div class="btn-group" style="margin-bottom:18px">
+  <a class="btn" href="/admin">Back to dashboard</a>
+  <a class="btn" href="/governance">Public view</a>
+  <a class="btn btn--primary" href="/admin/exports">Form-XVII export</a>
+</div>
+
+<div class="stat-strip" style="margin-bottom:20px">
+  <div class="stat">
+    <div class="stat__value">{{ count }}</div>
+    <div class="stat__label">Active members</div>
+    <div class="stat__note">
+      {% if count < gb_min or count > gb_max %}
+      <span class="pill pill--over">[X] Outside {{ gb_min }}-{{ gb_max }} (Sec. 34(1))</span>
+      {% else %}<span class="pill pill--ok">[OK] Within statutory bounds</span>{% endif %}
+    </div>
+  </div>
+  <div class="stat">
+    <div class="stat__value">{{ tenure_years }} yrs</div>
+    <div class="stat__label">Maximum tenure</div>
+    <div class="stat__note">Sec. 34(3) ceiling</div>
+  </div>
+  <div class="stat">
+    <div class="stat__value">30 d</div>
+    <div class="stat__label">Filing window</div>
+    <div class="stat__note">Sec. 34(2) &amp; Rule 19</div>
+  </div>
+</div>
+
+{# ---- Appoint ---- #}
+<section class="panel">
+  <div class="panel__head"><h2>Appoint an office-bearer</h2><span class="rule-ref">Form-XVII</span></div>
+  <div class="panel__body">
+    <form method="post" action="/admin/committee">
+      <div class="field-row">
+        <div class="field">
+          <label for="user_id">Member</label>
+          <select id="user_id" name="user_id" required>
+            <option value="">-- select --</option>
+            {% for m in members %}
+            <option value="{{ m.id }}">{{ m.full_name }}{% if m.canonical_code %} ({{ m.canonical_code }}){% endif %}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="designation">Designation</label>
+          <select id="designation" name="designation" required>
+            {% for key, label in designation_labels.items() %}
+            <option value="{{ key }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="portfolio">Portfolio</label>
+          <input type="text" id="portfolio" name="portfolio"
+                 placeholder="Civil &amp; Structural, Security &amp; Gate...">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="selection_mode">Selection mode</label>
+          <select id="selection_mode" name="selection_mode">
+            <option value="ELECTED_GBM">Elected - General Body</option>
+            <option value="ELECTED_COLLEGIUM">Elected - Collegium</option>
+            <option value="NOMINATED_COOPTED">Nominated / Co-Opted</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="term_start_date">Term start</label>
+          <input type="date" id="term_start_date" name="term_start_date" required>
+          <p class="field__hint">Term end auto-set to start + 3 years; Form-XVII
+             filing due within 30 days.</p>
+        </div>
+      </div>
+      <button class="btn btn--primary" type="submit">Appoint</button>
+      <p class="rule-ref" style="margin-top:10px">
+        Nominations create a Form-XVII-A filing obligation. A 22nd appointment or a
+        term beyond 3 years is rejected at the application layer.
+      </p>
+    </form>
+  </div>
+</section>
+
+{# ---- Roster ---- #}
+<section class="panel">
+  <div class="panel__head"><h2>Active roster</h2><span class="rule-ref">Sec. 34, Rule 19</span></div>
+  <div class="panel__body" style="padding:0">
+    <div class="table-scroll">
+      <table class="responsive">
+        <thead>
+          <tr>
+            <th>Member</th><th>Designation</th><th>Portfolio</th><th>Mode</th>
+            <th>Term</th><th class="num">Elapsed</th><th>Filing</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in rows %}
+          <tr>
+            <td data-label="Member"><strong>{{ c.full_name }}</strong>
+              <div class="rule-ref">{{ c.election_or_cooption_ref }}</div></td>
+            <td data-label="Designation"><span class="tag">{{ c.designation_label }}</span></td>
+            <td data-label="Portfolio" class="small">{{ c.portfolio or '-' }}</td>
+            <td data-label="Mode" class="small">{{ c.selection_mode.replace('_',' ').title() }}</td>
+            <td data-label="Term" class="mono small">
+              {{ c.term_start_date }}<br>&rarr; {{ c.term_end_date }}
+            </td>
+            <td data-label="Elapsed" class="num">
+              <div class="meter" style="min-width:70px" role="img" aria-label="{{ c.term_pct }} percent">
+                <span class="meter__fill {% if c.term_pct > 85 %}meter__fill--accent{% endif %}"
+                      style="width: {{ c.term_pct }}%"></span>
+              </div>
+              <span class="mono small">{{ c.term_pct }}%</span>
+              {% if c.days_left < 90 %}
+              <div class="rule-ref">{{ c.days_left }} days left</div>
+              {% endif %}
+            </td>
+            <td data-label="Filing" class="small">
+              {% if c.filed_with_registrar_on %}
+              <span class="pill pill--ok">[OK] {{ c.filed_with_registrar_on }}</span>
+              {% else %}
+              <span class="pill pill--due">[DUE] {{ c.filing_due_date }}</span>
+              {% endif %}
+              <div class="rule-ref">{{ c.statutory_form_type.replace('_','-') }}</div>
+            </td>
+            <td data-label="Action">
+              <form method="post" action="/admin/committee/{{ c.id }}/retire"
+                    onsubmit="return confirm('Cease this office-bearer? Form-XVII-A filing becomes due within 30 days.');">
+                <button class="btn btn--sm" type="submit">Cease</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<p class="rule-ref">
+  Cessation of membership automatically disqualifies an office-bearer
+  (Sec. 34(4)); the cease action writes a Form-XVII-A obligation to the audit log.
+</p>
+{% endblock %}

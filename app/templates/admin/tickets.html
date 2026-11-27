@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Helpdesk Queue -- {{ society.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <span class="tag">Helpdesk &amp; Complaint Queue</span>
+  <span class="tag tag--muted">Zero billing</span>
+  <h1>Ticket Administration</h1>
+  <p>Advance tickets through the lifecycle. Resident PII appears only inside this
+     authenticated zone and never on the public dashboard (spec 4.2).</p>
+</div>
+
+<nav class="tabs" aria-label="Filter by status">
+  <a href="/admin/tickets" {% if not active_status %}aria-current="page"{% endif %}>All</a>
+  {% for s in statuses %}
+  <a href="/admin/tickets?status={{ s }}" {% if active_status == s %}aria-current="page"{% endif %}>{{ s.replace('_',' ') }}</a>
+  {% endfor %}
+</nav>
+
+<div class="tab-panel">
+  <div class="btn-group" style="margin-bottom:16px">
+    <a class="btn" href="/admin">Back to dashboard</a>
+    <a class="btn" href="/admin?tab=3">SLA telemetry</a>
+  </div>
+
+  {% if rows %}
+  <div class="table-scroll">
+    <table class="responsive">
+      <thead>
+        <tr>
+          <th>#</th><th>Subject</th><th>Category</th><th>Unit</th><th>Raised by</th>
+          <th>Status</th><th>Priority</th><th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in rows %}
+        <tr>
+          <td data-label="Ticket" class="mono">{{ t.ticket_number }}</td>
+          <td data-label="Subject">
+            <strong>{{ t.subject }}</strong>
+            <div class="rule-ref">{{ t.description[:90] }}{% if t.description|length > 90 %}&hellip;{% endif %}</div>
+            {% if t.work_log %}
+            <details>
+              <summary class="rule-ref" style="cursor:pointer">{{ t.work_log | length }} work log entries</summary>
+              <ol class="small" style="padding-left:18px; margin:6px 0 0">
+                {% for e in t.work_log %}
+                <li><span class="mono">{{ e.at[:16].replace('T',' ') }}</span> -- {{ e.by }}: {{ e.note }}</li>
+                {% endfor %}
+              </ol>
+            </details>
+            {% endif %}
+          </td>
+          <td data-label="Category" class="small">{{ t.category }}
+            <div class="rule-ref">{{ t.location_scope.replace('_',' ') }}</div>
+          </td>
+          <td data-label="Unit" class="mono small">{{ t.canonical_code or 'Common' }}</td>
+          <td data-label="Raised by" class="small">{{ t.raiser }}
+            {% if t.assignee %}<div class="rule-ref">-> {{ t.assignee }}</div>{% endif %}
+          </td>
+          <td data-label="Status">
+            <span class="pill {% if t.status in ('OPEN','REOPENED') %}pill--open{% elif t.status == 'RESOLVED' %}pill--ok{% else %}pill--due{% endif %}">
+              {{ t.status }}
+            </span>
+          </td>
+          <td data-label="Priority" class="small">{{ t.priority }}</td>
+          <td data-label="Action">
+            {% if t.status != 'RESOLVED' %}
+            <form method="post" action="/admin/tickets/{{ t.id }}/advance" style="display:inline">
+              <button class="btn btn--sm" type="submit">Advance</button>
+            </form>
+            {% else %}<span class="rule-ref">Closed</span>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="muted mb-0">No tickets match this filter.</p>
+  {% endif %}
+</div>
+{% endblock %}

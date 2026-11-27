@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Sign In -- {{ society.name }}{% endblock %}
+{% block content %}
+<div class="wrap--narrow" style="margin:0 auto">
+  <div class="page-head">
+    <span class="tag">Authenticated Workspace</span>
+    <h1>Sign In</h1>
+    <p>Identity is bound to the composite triad
+       <strong>Flat Number + Mobile + Email</strong>. There is no SMS OTP -- password
+       based, or request an emailed magic reset token.</p>
+  </div>
+
+  {% if error %}
+  <div class="alert alert--error" role="alert">
+    <p class="alert__title">Sign in failed</p>
+    <p class="mb-0">{{ error }}</p>
+  </div>
+  {% endif %}
+
+  <form method="post" action="/login" class="panel">
+    <div class="panel__head"><h2>Credentials</h2><span class="rule-ref">Argon2id-class hashing</span></div>
+    <div class="panel__body">
+      <input type="hidden" name="next" value="{{ next }}">
+
+      <div class="field">
+        <label for="email">Email, mobile number or member serial</label>
+        <input type="text" id="email" name="email" required autocomplete="username"
+               placeholder="you@example.com / +919876543210 / M-1001">
+        <p class="field__hint">Any one of the three identifiers works.</p>
+      </div>
+
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required
+               autocomplete="current-password" placeholder="Your password">
+      </div>
+
+      <div class="btn-group">
+        <button class="btn btn--primary btn--block" type="submit">Sign in</button>
+      </div>
+
+      <div class="btn-group" style="margin-top:12px">
+        <a class="btn btn--sm btn--ghost" href="/forgot">Forgot password</a>
+        <a class="btn btn--sm btn--ghost" href="/claim">Claim a pre-seeded account</a>
+        <a class="btn btn--sm btn--ghost" href="/apply">Apply for membership</a>
+      </div>
+    </div>
+  </form>
+
+  <div class="panel">
+    <div class="panel__head"><h2>Demonstration logins</h2><span class="rule-ref">Demo dataset</span></div>
+    <div class="panel__body">
+      <div class="table-scroll">
+        <table class="responsive">
+          <thead><tr><th>Role</th><th>Identifier</th><th>Password</th></tr></thead>
+          <tbody>
+            <tr><td data-label="Role"><span class="tag">Super Admin</span></td>
+                <td data-label="Identifier" class="mono">admin@greenwoodrwa.in</td>
+                <td data-label="Password" class="mono">Welcome@123</td></tr>
+            <tr><td data-label="Role"><span class="tag">Society Admin</span></td>
+                <td data-label="Identifier" class="mono">president@greenwoodrwa.in</td>
+                <td data-label="Password" class="mono">Welcome@123</td></tr>
+            <tr><td data-label="Role"><span class="tag">Data Operator</span></td>
+                <td data-label="Identifier" class="mono">clerk@greenwoodrwa.in</td>
+                <td data-label="Password" class="mono">Welcome@123</td></tr>
+            <tr><td data-label="Role"><span class="tag">Member</span></td>
+                <td data-label="Identifier" class="mono">resident-0@greenwoodrwa.in</td>
+                <td data-label="Password" class="mono">Welcome@123</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="rule-ref mb-0" style="margin-top:10px">Change these before any real deployment.</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

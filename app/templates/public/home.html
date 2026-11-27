@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% block title %}{{ society.name }} -- Public Transparency Dashboard{% endblock %}
+{% block description %}Public committee progress, statutory compliance health and civic
+execution tracker for {{ society.name }}, registered under the Haryana Registration and
+Regulation of Societies Act, 2012.{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <span class="tag">Public Transparency Zone</span>
+  <span class="tag tag--muted">Zero login required</span>
+  <h1>From the Desk of the Governing Body</h1>
+  <p>
+    Statutory identity, committee accountability and resolution-linked civic works for
+    {{ society.name }}. This zone never exposes resident PII. Members and office bearers
+    sign in for the full operations workspace.
+  </p>
+  <div class="btn-group" style="margin-top:12px">
+    <a class="btn btn--primary" href="/governance">Committee dashboard</a>
+    <a class="btn" href="/apply">Apply for membership (Form-X)</a>
+    <a class="btn btn--ghost" href="/login">Member sign in</a>
+  </div>
+</div>
+
+{# ---- Governance scorecard strip (spec 4.2) ---- #}
+{% if stats %}
+<section aria-labelledby="scorecard-h">
+  <h2 id="scorecard-h" class="visually-hidden">Governance scorecard</h2>
+  <div class="stat-strip">
+    <div class="stat">
+      <div class="stat__value">{{ active_members }}</div>
+      <div class="stat__label">Active members</div>
+      <div class="stat__note">Collegium threshold: {{ 300 }} (Sec. 30)</div>
+    </div>
+    <div class="stat">
+      <div class="stat__value">{{ stats.term_avg_pct }}%</div>
+      <div class="stat__label">Term elapsed</div>
+      <div class="stat__note">{{ stats.term_days_left }} days to statutory ceiling</div>
+    </div>
+    <div class="stat">
+      <div class="stat__value">{{ stats.meetings_held }}/{{ stats.meetings_required }}</div>
+      <div class="stat__label">GB meetings this year</div>
+      <div class="stat__note">Floor of 4 per year (Sec. 36(1))</div>
+    </div>
+    <div class="stat">
+      <div class="stat__value">{{ stats.filings_due }}</div>
+      <div class="stat__label">Filings pending</div>
+      <div class="stat__note">{% if stats.filings_overdue %}<span class="pill pill--over">[X] {{ stats.filings_overdue }} overdue</span>{% else %}<span class="pill pill--ok">[OK] none overdue</span>{% endif %}</div>
+    </div>
+    {% if sla and sla.total %}
+    <div class="stat">
+      <div class="stat__value">{{ ((sla.resolved or 0) * 100 // sla.total) }}%</div>
+      <div class="stat__label">Helpdesk resolution rate</div>
+      <div class="stat__note">Median {{ '%.1f' % (sla.mean_days or 0) }} days, no PII shown</div>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endif %}
+
+<hr>
+
+{# ---- Committee highlights ---- #}
+<section aria-labelledby="committee-h">
+  <div class="page-head" style="border-bottom-width:1px">
+    <h2 id="committee-h">Your Governing Body</h2>
+    <p>Elected office bearers and nominated / co-opted members, with statutory tenure
+       and District Registrar filing status (Form-XVII).</p>
+  </div>
+  <div class="grid grid--3">
+    {% for c in committee[:6] %}
+    <article class="card">
+      <div class="badge-row">
+        <span class="tag">{{ designation_labels.get(c.designation, c.designation) }}</span>
+        {% if c.selection_mode == 'NOMINATED_COOPTED' %}
+        <span class="tag tag--muted">Nominated / Co-Opted</span>
+        {% else %}
+        <span class="tag tag--positive">Elected</span>
+        {% endif %}
+      </div>
+      <h3 class="card__title">{{ c.full_name }}</h3>
+      <p class="card__meta">{{ c.portfolio }}</p>
+      <div class="rule-ref">
+        Term {{ c.term_start_date }} &rarr; {{ c.term_end_date }} &middot; {{ c.statutory_form_type.replace('_','-') }}
+      </div>
+      {% if c.filed_with_registrar_on %}
+      <span class="pill pill--ok">[OK] FILED {{ c.filed_with_registrar_on }}</span>
+      {% else %}
+      <span class="pill pill--due">[DUE] DUE WITHIN 30 DAYS</span>
+      {% endif %}
+      {% if c.public_contact_email %}
+      <a class="small" href="mailto:{{ c.public_contact_email }}">{{ c.public_contact_email }}</a>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </div>
+  <p class="small muted">
+    Personal phone numbers and flat numbers are withheld unless the member has
+    explicitly opted in (privacy guardrail, spec 4.1).
+  </p>
+  <a class="btn" href="/governance">Full committee dashboard</a>
+</section>
+
+<hr>
+
+{# ---- Civic works ---- #}
+<section aria-labelledby="works-h">
+  <div class="page-head" style="border-bottom-width:1px">
+    <h2 id="works-h">Resolution-Linked Civic Works</h2>
+    <p>Each initiative carries the authorizing General Body resolution and links to the
+       confirmed Minutes of Meeting (Sec. 37).</p>
+  </div>
+  <div class="grid grid--wide">
+    {% for i in initiatives %}
+    <article class="card">
+      <div class="badge-row">
+        <span class="tag">{{ i.category }}</span>
+        <span class="tag {% if i.status == 'COMPLETED' %}tag--positive{% elif i.status == 'IN_PROGRESS' %}tag--accent{% endif %}">{{ status_labels[i.status] }}</span>
+        <span class="tag tag--muted">{{ i.resolution_reference or 'Pending resolution' }}</span>
+      </div>
+      <h3 class="card__title">{{ i.title }}</h3>
+      <p class="card__meta">{{ i.summary }}</p>
+      <div class="meter-label">
+        <span>Completion</span><span>{{ i.completion_pct }}%</span>
+      </div>
+      <div class="meter" role="img" aria-label="{{ i.completion_pct }} percent complete">
+        <span class="meter__fill {% if i.completion_pct == 100 %}meter__fill--positive{% else %}meter__fill--accent{% endif %}"
+              style="width: {{ i.completion_pct }}%"></span>
+      </div>
+      {% if i.milestone_notes %}
+      <p class="small muted mb-0">{{ i.milestone_notes }}</p>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<hr>
+
+{# ---- Latest public circulars ---- #}
+<section aria-labelledby="notices-h">
+  <div class="page-head" style="border-bottom-width:1px">
+    <h2 id="notices-h">Public Circulars</h2>
+    <p>Read-only archive of published notices. Confirmed minutes are available to members.</p>
+  </div>
+  {% if notices %}
+  <div class="grid">
+    {% for n in notices %}
+    <article class="card">
+      <div class="badge-row">
+        <span class="tag {% if n.priority == 'URGENT' or n.priority == 'SHUTDOWN' %}tag--accent{% endif %}">{{ n.priority.replace('_',' ') }}</span>
+        {% if n.is_pinned %}<span class="tag tag--solid">Pinned</span>{% endif %}
+      </div>
+      <h3 class="card__title"><a href="/notices/{{ n.slug }}">{{ n.title }}</a></h3>
+      <p class="card__meta mono">{{ n.published_at[:10] }}</p>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="muted">No circulars published yet.</p>
+  {% endif %}
+  <a class="btn" href="/notices">All notices</a>
+</section>
+
+<hr>
+
+<section class="grid grid--3">
+  <div class="card">
+    <h3 class="card__title">Emergency Contacts</h3>
+    <p class="card__meta">Police, fire, ambulance and gate desks.</p>
+    <a class="btn btn--sm" href="/contacts">View contacts</a>
+  </div>
+  <div class="card">
+    <h3 class="card__title">Right of Inspection</h3>
+    <p class="card__meta">Members may inspect the Register of Members and confirmed
+      Minutes Books on working hours after reasonable notice (Sec. 19, Sec. 20(3)).</p>
+    <a class="btn btn--sm" href="/login">Sign in to request</a>
+  </div>
+  <div class="card">
+    <h3 class="card__title">New Applicant?</h3>
+    <p class="card__meta">Complete the digital Form-X admission application. Admission fee
+      must be paid by bank instrument only (Rule 11(1)).</p>
+    <a class="btn btn--sm btn--primary" href="/apply">Start Form-X</a>
+  </div>
+</section>
+{% endblock %}

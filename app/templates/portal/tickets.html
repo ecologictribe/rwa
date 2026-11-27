@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}My Tickets -- {{ society.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <span class="tag">Helpdesk</span>
+  <span class="tag tag--muted">Zero billing / invoicing</span>
+  <h1>My Complaint Tickets</h1>
+  <p>Track every ticket you have raised. The desk advances tickets through
+     OPEN &rarr; ACKNOWLEDGED &rarr; IN_PROGRESS &rarr; AWAITING_CONFIRMATION &rarr; RESOLVED.</p>
+</div>
+
+<div class="btn-group" style="margin-bottom:18px">
+  <a class="btn btn--primary" href="/portal#raise-ticket">Raise a new ticket</a>
+  <a class="btn" href="/portal">Back to portal</a>
+</div>
+
+{% if rows %}
+<div class="stack">
+  {% for t in rows %}
+  <article class="panel">
+    <div class="panel__head">
+      <h2>
+        <span class="mono">#{{ t.ticket_number }}</span> &mdash; {{ t.subject }}
+      </h2>
+      <div class="badge-row">
+        {% if t.status in ('OPEN','REOPENED') %}<span class="pill pill--open">{{ t.status }}</span>
+        {% elif t.status == 'RESOLVED' %}<span class="pill pill--ok">[OK] RESOLVED</span>
+        {% else %}<span class="pill pill--due">{{ t.status }}</span>{% endif %}
+        <span class="tag tag--muted">{{ t.priority }}</span>
+        <span class="tag tag--muted">{{ t.category }}</span>
+      </div>
+    </div>
+    <div class="panel__body">
+      <p>{{ t.description }}</p>
+      <dl class="meta">
+        <dt>Location</dt><dd>{{ t.location_scope.replace('_',' ').title() }}</dd>
+        <dt>Raised</dt><dd class="mono">{{ t.created_at[:16].replace('T',' ') }}</dd>
+        {% if t.resolved_at %}<dt>Resolved</dt><dd class="mono">{{ t.resolved_at[:16].replace('T',' ') }}</dd>{% endif %}
+        {% if t.cluster_root_ticket_id %}<dt>Clustered</dt>
+        <dd><span class="pill pill--due">[DUE] Linked to a root-cause outage cluster</span></dd>{% endif %}
+      </dl>
+
+      {% if t.work_log %}
+      <hr class="soft">
+      <h3>Work log</h3>
+      <ol class="small" style="padding-left:20px; margin:0">
+        {% for entry in t.work_log %}
+        <li><span class="mono">{{ entry.at[:16].replace('T',' ') }}</span> &mdash;
+            <strong>{{ entry.by }}</strong>: {{ entry.note }}</li>
+        {% endfor %}
+      </ol>
+      {% endif %}
+
+      {% if t.status == 'AWAITING_CONFIRMATION' %}
+      <form method="post" action="/portal/tickets/{{ t.id }}/confirm" style="margin-top:14px">
+        <button class="btn btn--primary" type="submit">Confirm the fix &amp; close</button>
+      </form>
+      {% endif %}
+    </div>
+  </article>
+  {% endfor %}
+</div>
+{% else %}
+<div class="panel"><p class="mb-0 muted">You have not raised any tickets yet.</p></div>
+{% endif %}
+{% endblock %}
