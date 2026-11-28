@@ -3,9 +3,10 @@
 {% block content %}
 <div class="page-head">
   <span class="tag">Helpdesk</span>
-  <span class="tag tag--muted">Zero billing / invoicing</span>
+  <span class="tag tag--muted">Zero billing / invoicing &middot; Immutable Audit Trail</span>
   <h1>My Complaint Tickets</h1>
-  <p>Track every ticket you have raised. The desk advances tickets through
+  <p>Track every ticket you have raised. All actions are committed to the immutable audit log.
+     The desk advances tickets through
      OPEN &rarr; ACKNOWLEDGED &rarr; IN_PROGRESS &rarr; AWAITING_CONFIRMATION &rarr; RESOLVED.</p>
 </div>
 
@@ -52,9 +53,20 @@
       {% endif %}
 
       {% if t.status == 'AWAITING_CONFIRMATION' %}
-      <form method="post" action="/portal/tickets/{{ t.id }}/confirm" style="margin-top:14px">
-        <button class="btn btn--primary" type="submit">Confirm the fix &amp; close</button>
-      </form>
+      <div class="btn-group" style="margin-top:14px">
+        <form method="post" action="/portal/tickets/{{ t.id }}/confirm" style="display:inline">
+          <button class="btn btn--primary" type="submit">Confirm the fix &amp; close</button>
+        </form>
+        <form method="post" action="/portal/tickets/{{ t.id }}/reopen" style="display:inline">
+          <button class="btn btn--ghost" type="submit">Not Fixed &mdash; Reopen Ticket</button>
+        </form>
+      </div>
+      {% elif t.status == 'RESOLVED' %}
+      <div style="margin-top:10px">
+        <form method="post" action="/portal/tickets/{{ t.id }}/reopen" style="display:inline">
+          <button class="btn btn--sm btn--ghost" type="submit">Issue recurred? Reopen ticket</button>
+        </form>
+      </div>
       {% endif %}
     </div>
   </article>

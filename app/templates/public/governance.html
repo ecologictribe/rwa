@@ -2,13 +2,13 @@
 {% block title %}Committee & Governance Dashboard -- {{ society.name }}{% endblock %}
 {% block content %}
 <div class="page-head">
-  <span class="tag">Form-XVII Public View</span>
-  <span class="tag tag--muted">Zero login required</span>
+  <span class="tag">HRRS Act Sec. 34 &middot; Form-XVII Public View</span>
+  <span class="tag tag--muted">Sec. 10(2) &middot; Zero login required</span>
   <h1>Committee Progress &amp; Accountability</h1>
   <p>
-    Composition, statutory tenure, District Registrar filing health and the
-    resolution-linked civic delivery ledger of the Governing Body. Resident PII
-    is never displayed in this zone.
+    Composition, statutory tenure (Sec. 34(3) 3-year cap), District Registrar filing health (Rule 19) and the
+    resolution-linked civic delivery ledger of the Governing Body under Haryana Registration and Regulation of
+    Societies Act, 2012. Resident PII is never displayed in this zone.
   </p>
 </div>
 
@@ -19,9 +19,9 @@
     <div class="stat__label">Active members</div>
     <div class="stat__note">
       {% if active_members > collegium_threshold %}
-      <span class="pill pill--due">[DUE] Collegium mode active</span>
+      <span class="pill pill--due">[DUE] Collegium mode active (Sec. 29(4), Sec. 30)</span>
       {% else %}
-      <span class="pill pill--ok">[OK] Below {{ collegium_threshold }} threshold</span>
+      <span class="pill pill--ok">[OK] Below {{ collegium_threshold }} threshold (Sec. 30)</span>
       {% endif %}
     </div>
   </div>
@@ -40,8 +40,8 @@
     <div class="stat__value">{{ stats.filings_due }}</div>
     <div class="stat__label">Form-XVII filings pending</div>
     <div class="stat__note">
-      {% if stats.filings_overdue %}<span class="pill pill--over">[X] {{ stats.filings_overdue }} overdue</span>
-      {% else %}<span class="pill pill--ok">[OK] none overdue</span>{% endif %}
+      {% if stats.filings_overdue %}<span class="pill pill--over">[X] {{ stats.filings_overdue }} overdue (Rule 19)</span>
+      {% else %}<span class="pill pill--ok">[OK] none overdue (Rule 19)</span>{% endif %}
     </div>
   </div>
   {% endif %}
@@ -216,21 +216,25 @@
 <section aria-labelledby="digest-h" style="margin-top:26px">
   <div class="page-head" style="border-bottom-width:1px">
     <h2 id="digest-h">Public Circulars &amp; Confirmed Minutes Digest</h2>
+    <span class="rule-ref">HRRS Act Sec. 10(2) &amp; Rule 6 &middot; Sec. 37 Confirmed MoM</span>
   </div>
   <div class="grid">
     {% for n in circulars %}
+    {% set reg_str = ' (Reg. No: ' ~ society.registration_number ~ ')' if society.registration_number else '' %}
+    {% set share_msg = '🏛️ ' ~ society.name ~ reg_str ~ '\n📜 Official Notice [HRRS Act, 2012 Sec. 10(2) & Rule 6]\n📌 ' ~ n.title ~ '\n\n🔗 ' ~ request.base_url ~ 'notices/' ~ n.slug %}
     <article class="card">
       <div class="badge-row">
         <span class="tag {% if n.priority in ('URGENT','SHUTDOWN') %}tag--accent{% endif %}">{{ n.priority.replace('_',' ') }}</span>
         <span class="tag tag--muted mono">{{ n.published_at[:10] }}</span>
+        <span class="tag tag--muted">Sec. 10(2)</span>
       </div>
       <h3 class="card__title"><a href="/notices/{{ n.slug }}">{{ n.title }}</a></h3>
       <div class="btn-group">
         <button class="btn btn--sm" type="button"
-                onclick="navigator.share ? navigator.share({title: {{ n.title|tojson }}, url: location.origin + '/notices/{{ n.slug }}'}) : null">
+                onclick="navigator.share ? navigator.share({title: {{ n.title|tojson }}, text: {{ share_msg|tojson }}, url: location.origin + '/notices/{{ n.slug }}'}) : null">
           Share
         </button>
-        <a class="btn btn--sm" href="https://wa.me/?text={{ (n.title ~ ' -- ' ~ society.name)|urlencode }}"
+        <a class="btn btn--sm" href="https://wa.me/?text={{ share_msg|urlencode }}"
            target="_blank" rel="noopener">WhatsApp</a>
       </div>
     </article>

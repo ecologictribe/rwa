@@ -80,12 +80,32 @@ def transaction() -> Iterator[sqlite3.Connection]:
 
 
 def init_db() -> None:
-    """Create the schema if it does not exist yet."""
+    """Create the schema if it does not exist yet and ensure schema columns are present."""
     if not SCHEMA_PATH.exists():
         raise FileNotFoundError(f"Schema file missing: {SCHEMA_PATH}")
     schema = SCHEMA_PATH.read_text(encoding="utf-8")
     with connection() as conn:
         conn.executescript(schema)
+        # Backward-compatible migrations for existing SQLite databases
+        for tbl, col, typ in [
+            ("users", "aadhaar_number", "TEXT"),
+            ("users", "qualification", "TEXT"),
+            ("users", "profile_photo_path", "TEXT"),
+            ("form_x_applications", "occupation", "TEXT"),
+            ("form_x_applications", "qualification", "TEXT"),
+            ("form_x_applications", "aadhaar_number", "TEXT"),
+            ("form_x_applications", "id_proof_path", "TEXT"),
+            ("audit_logs", "prev_hash", "TEXT"),
+            ("audit_logs", "entry_hash", "TEXT"),
+        ]:
+            try:
+                existing_cols = [c[1] for c in conn.execute(f"PRAGMA table_info({tbl})").fetchall()]
+                if col not in existing_cols:
+                    conn.execute(f"ALTER TABLE {tbl} ADD COLUMN {col} {typ}")
+            except Exception:
+                pass
+        conn.execute("ANALYZE")
+        conn.execute("PRAGMA optimize")
 
 
 def query_all(sql: str, params: Sequence[Any] = ()) -> list[dict[str, Any]]:

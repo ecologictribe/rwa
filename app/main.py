@@ -10,7 +10,7 @@ import json
 import os
 
 from fastapi import FastAPI, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -64,6 +64,12 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
             )
         elif FLASH_COOKIE in request.cookies:
             response.delete_cookie(FLASH_COOKIE)
+
+        # Statutory & OWASP Security Post-Flight Headers
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "SAMEORIGIN"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
         return response
 
 
@@ -83,20 +89,30 @@ app.include_router(admin.router)
 app.include_router(api.router)
 
 
+def _wants_json(request: Request) -> bool:
+    accept = request.headers.get("accept", "")
+    return request.url.path.startswith("/api/") or "application/json" in accept
+
+
 @app.exception_handler(401)
 async def unauthorized_handler(request: Request, exc):
+    if _wants_json(request):
+        return JSONResponse({"status": "unauthorized", "detail": "Authentication required."}, status_code=401)
     return RedirectResponse(url=f"/login?next={request.url.path}", status_code=302)
 
 
 @app.exception_handler(403)
 async def forbidden_handler(request: Request, exc):
+    detail = getattr(exc, "detail", "Your role does not permit this action.")
+    if _wants_json(request):
+        return JSONResponse({"status": "forbidden", "detail": detail}, status_code=403)
     return render(
         request,
         "error.html",
         {
             "error_code": "403",
             "error_title": "Permission denied",
-            "error_text": getattr(exc, "detail", "Your role does not permit this action."),
+            "error_text": detail,
         },
         status_code=403,
     )
@@ -104,6 +120,8 @@ async def forbidden_handler(request: Request, exc):
 
 @app.exception_handler(404)
 async def not_found_handler(request: Request, exc):
+    if _wants_json(request):
+        return JSONResponse({"status": "not_found", "detail": "The requested resource was not found."}, status_code=404)
     return render(
         request,
         "error.html",
@@ -118,6 +136,8 @@ async def not_found_handler(request: Request, exc):
 
 @app.exception_handler(500)
 async def server_error_handler(request: Request, exc):
+    if _wants_json(request):
+        return JSONResponse({"status": "error", "detail": "An unexpected server error occurred."}, status_code=500)
     return render(
         request,
         "error.html",

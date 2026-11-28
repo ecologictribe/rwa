@@ -2,15 +2,16 @@
 {% block title %}Announcements -- {{ society.name }}{% endblock %}
 {% block content %}
 <div class="page-head">
-  <span class="tag">Announcements</span>
-  <span class="tag tag--muted">Sec. 10(2) identity header on every export</span>
+  <span class="tag">HRRS Act Sec. 10(2) &middot; Rule 6</span>
+  <span class="tag tag--muted">Governing Body Desk (Sec. 34)</span>
   <h1>Publish &amp; Manage Notices</h1>
   <p>Priority tags, optional document attachment and a public / member visibility
-     toggle. Published notices carry a one-tap sharing toolkit (spec 5.4).</p>
+     toggle. Published notices carry statutory society identity (Sec. 10(2) &amp; Rule 6) and a one-tap sharing toolkit (spec 5.4).</p>
 </div>
 
 <div class="btn-group" style="margin-bottom:18px">
   <a class="btn" href="/admin">Back to dashboard</a>
+  <a class="btn btn--primary" href="/admin/announcements/export/csv">Export Notices (CSV)</a>
   <a class="btn" href="/notices">View public notices</a>
 </div>
 
@@ -20,7 +21,7 @@
     <div class="panel__body">
       <div class="field">
         <label for="title">Title</label>
-        <input type="text" id="title" name="title" required maxlength="160"
+        <input type="text" id="title" name="title" required minlength="3" maxlength="160"
                placeholder="Water supply interruption -- Tower B">
       </div>
       <div class="field-row">
@@ -48,7 +49,7 @@
       </div>
       <div class="field">
         <label for="body_markdown">Body (Markdown)</label>
-        <textarea id="body_markdown" name="body_markdown" required rows="10"
+        <textarea id="body_markdown" name="body_markdown" required minlength="10" rows="10"
                   placeholder="## Notice&#10;&#10;Body text..."></textarea>
       </div>
       <button class="btn btn--primary" type="submit">Publish</button>
@@ -85,10 +86,13 @@
               </td>
               <td data-label="Date" class="mono small">{{ n.published_at[:10] }}</td>
               <td data-label="Action">
-                <form method="post" action="/admin/announcements/{{ n.id }}/delete"
-                      onsubmit="return confirm('Withdraw this notice?');">
-                  <button class="btn btn--sm" type="submit">Withdraw</button>
-                </form>
+                <div class="btn-group" style="gap:4px">
+                  <a class="btn btn--sm" href="/admin/announcements/{{ n.id }}/edit">Edit</a>
+                  <form method="post" action="/admin/announcements/{{ n.id }}/delete"
+                        onsubmit="return confirm('Withdraw this notice?');" style="display:inline">
+                    <button class="btn btn--sm btn--danger" type="submit">Withdraw</button>
+                  </form>
+                </div>
               </td>
             </tr>
             {% endfor %}

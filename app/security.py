@@ -101,7 +101,8 @@ def _load_session(raw_token: str) -> dict | None:
                   s.last_seen_at, s.ip_address
            FROM sessions s
            JOIN users u ON u.id = s.user_id
-           WHERE s.token_hash = ? AND s.expires_at > ?""",
+           WHERE s.token_hash = ? AND s.expires_at > ?
+             AND u.account_status = 'ACTIVE'""",
         (token_hash, datetime.now(timezone.utc).isoformat(timespec="seconds")),
     )
     if row is None:

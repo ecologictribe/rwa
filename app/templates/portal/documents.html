@@ -3,11 +3,13 @@
 {% block content %}
 <div class="page-head">
   <span class="tag">Versioned Document Vault</span>
-  <span class="tag tag--muted">SHA-256 checksummed</span>
+  <span class="tag tag--accent">Sec. 19 &middot; Sec. 20(3) Right of Inspection</span>
+  <span class="tag tag--muted">SHA-256 Checksummed &middot; Sec. 37 MoM</span>
   <h1>Minutes, Bye-Laws &amp; Circulars</h1>
   <p>Published versions are never overwritten. Every upload creates version
      <span class="mono">v(N+1)</span> with a mandatory change summary; prior
-     revisions remain downloadable as superseded archive copies (spec 5.3).</p>
+     revisions remain downloadable as superseded archive copies (spec 5.3).
+     Inspection rights guaranteed under Sec. 19 &amp; Sec. 20(3) of HRRS Act, 2012.</p>
 </div>
 
 <div class="btn-group" style="margin-bottom:18px">
@@ -52,7 +54,7 @@
     </dl>
 
     <div class="btn-group">
-      <a class="btn btn--sm" href="/portal/documents">Download current (v{{ d.versions or 1 }})</a>
+      <a class="btn btn--sm" href="/portal/documents/{{ d.id }}/download">Download current (v{{ d.versions or 1 }})</a>
     </div>
     <p class="rule-ref mb-0">
       {% if d.doc_category.startswith('MOM') %}Sec. 37(2) dual sign-off &middot; Sec. 37(3) confirmation

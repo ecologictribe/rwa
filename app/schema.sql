@@ -47,9 +47,12 @@ CREATE TABLE IF NOT EXISTS users (
     father_or_spouse_name   TEXT,             -- Rule 11(1) Form-X
     date_of_birth           TEXT,             -- must be >= 21 yrs at admission (Sec. 16(i))
     occupation              TEXT,
+    qualification           TEXT,             -- Educational/Professional Qualification (Haryana Portal KYC)
+    aadhaar_number          TEXT,             -- 12-digit Aadhaar UID (Sec. 21(5) KYC)
     permanent_address       TEXT,
     residential_address     TEXT,
     id_proof_path           TEXT,             -- Sec. 21(5) identity/address proof
+    profile_photo_path      TEXT,             -- Optional member profile photo
     mobile_number           TEXT NOT NULL,
     email                   TEXT NOT NULL,
     role                    TEXT NOT NULL DEFAULT 'MEMBER'
@@ -229,6 +232,8 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     entity_id   TEXT,
     diff_payload TEXT NOT NULL DEFAULT '{}',
     ip_address  TEXT,
+    prev_hash   TEXT,
+    entry_hash  TEXT,
     created_at  TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_logs(entity_type, entity_id);
@@ -265,6 +270,9 @@ CREATE TABLE IF NOT EXISTS form_x_applications (
     applicant_name        TEXT NOT NULL,
     father_or_spouse_name TEXT NOT NULL,
     date_of_birth         TEXT NOT NULL,
+    occupation            TEXT,
+    qualification         TEXT,               -- Optional Educational/Professional Qualification
+    aadhaar_number        TEXT,               -- Optional 12-digit Aadhaar UID
     membership_category   TEXT NOT NULL,
     flat_id               TEXT NOT NULL,
     mobile_number         TEXT NOT NULL,
@@ -275,6 +283,7 @@ CREATE TABLE IF NOT EXISTS form_x_applications (
     sec16_declarations    TEXT NOT NULL,      -- Sec. 16(iv): three attestations
     aims_subscribed       INTEGER NOT NULL DEFAULT 0, -- Sec. 16(ii)/20(1)
     proof_filename        TEXT,
+    id_proof_path         TEXT,
     status                TEXT NOT NULL DEFAULT 'PENDING_VERIFICATION'
                           CHECK (status IN ('PENDING_VERIFICATION','APPROVED','REJECTED')),
     reviewed_by           TEXT REFERENCES users(id),
@@ -291,18 +300,162 @@ SELECT 'FORM_XII' AS form_ref,
        register_entry_due_date AS due_date,
        CASE WHEN register_entry_due_date IS NULL THEN 'NOT_APPLICABLE'
             WHEN date(register_entry_due_date) < date('now') THEN 'OVERDUE'
-            WHEN julianday(register_entry_due_date) - julianday('now') <= 3 THEN 'CRITICAL'
+            WHEN CAST((unixepoch(date(register_entry_due_date)) - unixepoch(date('now'))) / 86400 AS INTEGER) <= 3 THEN 'CRITICAL'
             ELSE 'ON_TRACK' END AS health,
        'HRRS_ACT_2012_SEC_18_1 | RULE_12_FORM_XII' AS rule_ref
 FROM users
-WHERE register_entry_due_date IS NOT NULL AND account_status = 'ACTIVE'
+WHERE register_entry_due_date IS NOT NULL AND account_status IN ('ACTIVE', 'PENDING')
 UNION ALL
 SELECT 'FORM_XVII', id, designation || ' - ' || IFNULL(portfolio,''),
        filing_due_date,
        CASE WHEN filed_with_registrar_on IS NOT NULL THEN 'FILED'
             WHEN date(filing_due_date) < date('now') THEN 'OVERDUE'
-            WHEN julianday(filing_due_date) - julianday('now') <= 3 THEN 'CRITICAL'
+            WHEN CAST((unixepoch(date(filing_due_date)) - unixepoch(date('now'))) / 86400 AS INTEGER) <= 3 THEN 'CRITICAL'
             ELSE 'DUE_SOON' END,
        'HRRS_ACT_2012_SEC_34_2 | RULE_19_FORM_XVII'
 FROM committee_members
 WHERE is_active = 1 AND filed_with_registrar_on IS NULL;
+
+-- ============================================================================
+-- 14. Enterprise Database Integrity & Validation Triggers (HRRS Statutory Invariants)
+-- ============================================================================
+
+-- Users: Mobile length >= 10, valid email, Aadhaar 12-digit numeric, age >= 21
+CREATE TRIGGER IF NOT EXISTS trg_users_validate_ins
+BEFORE INSERT ON users
+BEGIN
+    SELECT CASE
+        WHEN length(replace(replace(replace(NEW.mobile_number, ' ', ''), '+', ''), '-', '')) < 10
+        THEN RAISE(ABORT, 'Sec. 18(1): Mobile number must contain at least 10 digits')
+        WHEN NEW.email NOT LIKE '%@%.%'
+        THEN RAISE(ABORT, 'Sec. 18(1): Email format is invalid')
+        WHEN NEW.aadhaar_number IS NOT NULL AND length(replace(replace(NEW.aadhaar_number, ' ', ''), '-', '')) != 12
+        THEN RAISE(ABORT, 'Sec. 21(5): Aadhaar number must be exactly 12 digits')
+        WHEN NEW.aadhaar_number IS NOT NULL AND length(replace(replace(NEW.aadhaar_number, ' ', ''), '-', '')) = 12
+             AND replace(replace(NEW.aadhaar_number, ' ', ''), '-', '') NOT GLOB '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'
+        THEN RAISE(ABORT, 'Sec. 21(5): Aadhaar number must contain only numeric digits')
+        WHEN NEW.date_of_birth IS NOT NULL AND date(NEW.date_of_birth) > date('now', '-21 years')
+        THEN RAISE(ABORT, 'Sec. 16(i): Member must have completed 21 years of age')
+    END;
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_users_validate_upd
+BEFORE UPDATE ON users
+BEGIN
+    SELECT CASE
+        WHEN length(replace(replace(replace(NEW.mobile_number, ' ', ''), '+', ''), '-', '')) < 10
+        THEN RAISE(ABORT, 'Sec. 18(1): Mobile number must contain at least 10 digits')
+        WHEN NEW.email NOT LIKE '%@%.%'
+        THEN RAISE(ABORT, 'Sec. 18(1): Email format is invalid')
+        WHEN NEW.aadhaar_number IS NOT NULL AND length(replace(replace(NEW.aadhaar_number, ' ', ''), '-', '')) != 12
+        THEN RAISE(ABORT, 'Sec. 21(5): Aadhaar number must be exactly 12 digits')
+        WHEN NEW.aadhaar_number IS NOT NULL AND length(replace(replace(NEW.aadhaar_number, ' ', ''), '-', '')) = 12
+             AND replace(replace(NEW.aadhaar_number, ' ', ''), '-', '') NOT GLOB '[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]'
+        THEN RAISE(ABORT, 'Sec. 21(5): Aadhaar number must contain only numeric digits')
+        WHEN NEW.date_of_birth IS NOT NULL AND date(NEW.date_of_birth) > date('now', '-21 years')
+        THEN RAISE(ABORT, 'Sec. 16(i): Member must have completed 21 years of age')
+    END;
+END;
+
+-- Form-X Applications: Minimum age 21, no cash instruments, mobile >= 10, valid email
+CREATE TRIGGER IF NOT EXISTS trg_form_x_validate_ins
+BEFORE INSERT ON form_x_applications
+BEGIN
+    SELECT CASE
+        WHEN date(NEW.date_of_birth) > date('now', '-21 years')
+        THEN RAISE(ABORT, 'Sec. 16(i): Form-X applicant must have completed 21 years of age')
+        WHEN length(replace(replace(replace(NEW.mobile_number, ' ', ''), '+', ''), '-', '')) < 10
+        THEN RAISE(ABORT, 'Sec. 18(1): Mobile number must contain at least 10 digits')
+        WHEN NEW.email NOT LIKE '%@%.%'
+        THEN RAISE(ABORT, 'Sec. 18(1): Email format is invalid')
+        WHEN NEW.fee_instrument_ref LIKE '%"type":"CASH"%'
+        THEN RAISE(ABORT, 'Rule 11(1): Cash instrument strictly prohibited for admission fees')
+        WHEN NEW.aadhaar_number IS NOT NULL AND length(replace(replace(NEW.aadhaar_number, ' ', ''), '-', '')) != 12
+        THEN RAISE(ABORT, 'Sec. 21(5): Aadhaar number must be exactly 12 digits')
+        WHEN NEW.membership_category NOT IN ('FOUNDER','LIFE','ORDINARY','ASSOCIATE','TENURE','HONORARY')
+        THEN RAISE(ABORT, 'Sec. 15: Invalid statutory membership category')
+    END;
+END;
+
+-- Tickets: Subject min 5 chars, Description min 10 chars, Feedback 1-5
+CREATE TRIGGER IF NOT EXISTS trg_tickets_validate_ins
+BEFORE INSERT ON tickets
+BEGIN
+    SELECT CASE
+        WHEN length(trim(NEW.subject)) < 5
+        THEN RAISE(ABORT, 'Helpdesk SLA: Ticket subject must be at least 5 characters')
+        WHEN length(trim(NEW.description)) < 10
+        THEN RAISE(ABORT, 'Helpdesk SLA: Ticket description must be at least 10 characters')
+        WHEN NEW.feedback_rating IS NOT NULL AND (NEW.feedback_rating < 1 OR NEW.feedback_rating > 5)
+        THEN RAISE(ABORT, 'Helpdesk SLA: Feedback rating must be between 1 and 5')
+    END;
+END;
+
+-- Announcements: Title min 3 chars, Body min 5 chars
+CREATE TRIGGER IF NOT EXISTS trg_announcements_validate_ins
+BEFORE INSERT ON announcements
+BEGIN
+    SELECT CASE
+        WHEN length(trim(NEW.title)) < 3
+        THEN RAISE(ABORT, 'Sec. 10(2): Notice title must be at least 3 characters')
+        WHEN length(trim(NEW.body_markdown)) < 5
+        THEN RAISE(ABORT, 'Sec. 10(2): Notice body must be at least 5 characters')
+    END;
+END;
+
+CREATE TRIGGER IF NOT EXISTS trg_announcements_validate_upd
+BEFORE UPDATE ON announcements
+BEGIN
+    SELECT CASE
+        WHEN length(trim(NEW.title)) < 3
+        THEN RAISE(ABORT, 'Sec. 10(2): Notice title must be at least 3 characters')
+        WHEN length(trim(NEW.body_markdown)) < 5
+        THEN RAISE(ABORT, 'Sec. 10(2): Notice body must be at least 5 characters')
+    END;
+END;
+
+-- Committee Members: Term end >= term start
+CREATE TRIGGER IF NOT EXISTS trg_committee_validate_ins
+BEFORE INSERT ON committee_members
+BEGIN
+    SELECT CASE
+        WHEN date(NEW.term_end_date) < date(NEW.term_start_date)
+        THEN RAISE(ABORT, 'Sec. 34(3): Term end date cannot precede term start date')
+    END;
+END;
+
+-- ============================================================================
+-- 15. Performance Index Optimization (Foreign Key Coverage & B-Tree Pathing)
+-- ============================================================================
+
+-- Foreign Key Coverage Indexes (Eliminate child table scans on parent operations)
+CREATE INDEX IF NOT EXISTS idx_units_society ON units(society_id);
+CREATE INDEX IF NOT EXISTS idx_users_unit ON users(unit_id);
+CREATE INDEX IF NOT EXISTS idx_users_society ON users(society_id);
+CREATE INDEX IF NOT EXISTS idx_users_lower_email ON users(lower(email));
+CREATE INDEX IF NOT EXISTS idx_users_mobile ON users(mobile_number);
+CREATE INDEX IF NOT EXISTS idx_users_serial ON users(member_serial_no COLLATE NOCASE);
+CREATE INDEX IF NOT EXISTS idx_committee_society ON committee_members(society_id);
+CREATE INDEX IF NOT EXISTS idx_committee_user ON committee_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_committee_active_designation ON committee_members(is_active, designation);
+CREATE INDEX IF NOT EXISTS idx_initiatives_society ON committee_initiatives(society_id);
+CREATE INDEX IF NOT EXISTS idx_initiatives_lead ON committee_initiatives(lead_committee_member_id);
+CREATE INDEX IF NOT EXISTS idx_documents_society ON documents(society_id);
+CREATE INDEX IF NOT EXISTS idx_documents_created_by ON documents(created_by);
+CREATE INDEX IF NOT EXISTS idx_doc_versions_doc_num ON document_versions(document_id, version_number);
+CREATE INDEX IF NOT EXISTS idx_doc_versions_uploaded_by ON document_versions(uploaded_by);
+CREATE INDEX IF NOT EXISTS idx_doc_versions_approved_by ON document_versions(approved_by);
+CREATE INDEX IF NOT EXISTS idx_announcements_society ON announcements(society_id);
+CREATE INDEX IF NOT EXISTS idx_announcements_published_by ON announcements(published_by);
+CREATE INDEX IF NOT EXISTS idx_announcements_attachment ON announcements(attachment_doc_id);
+CREATE INDEX IF NOT EXISTS idx_announcements_slug ON announcements(slug);
+CREATE INDEX IF NOT EXISTS idx_announcements_public_published ON announcements(is_public, published_at DESC);
+CREATE INDEX IF NOT EXISTS idx_tickets_society ON tickets(society_id);
+CREATE INDEX IF NOT EXISTS idx_tickets_unit ON tickets(unit_id);
+CREATE INDEX IF NOT EXISTS idx_tickets_raised_by ON tickets(raised_by, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_tickets_assigned_to ON tickets(assigned_to);
+CREATE INDEX IF NOT EXISTS idx_tickets_cluster ON tickets(cluster_root_ticket_id);
+CREATE INDEX IF NOT EXISTS idx_tickets_status ON tickets(status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_form_x_society ON form_x_applications(society_id);
+CREATE INDEX IF NOT EXISTS idx_form_x_reviewed_by ON form_x_applications(reviewed_by);
+CREATE INDEX IF NOT EXISTS idx_form_x_status ON form_x_applications(status, created_at DESC);

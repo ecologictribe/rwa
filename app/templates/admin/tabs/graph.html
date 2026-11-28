@@ -159,12 +159,13 @@
     {% if ranked %}
     <div class="table-scroll">
       <table class="responsive">
-        <thead><tr><th>Asset</th><th class="num">Out-degree (units served)</th><th>Priority</th></tr></thead>
+        <thead><tr><th>Asset</th><th class="num">Out-degree</th><th class="num">Normalized C_D</th><th>Priority</th></tr></thead>
         <tbody>
-          {% for name, deg in ranked %}
+          {% for name, deg, norm in ranked %}
           <tr>
             <td data-label="Asset" class="mono">{{ name }}</td>
             <td data-label="Out-degree" class="num mono">{{ deg }}</td>
+            <td data-label="Normalized C_D" class="num mono">{{ norm }}</td>
             <td data-label="Priority">
               {% if deg >= 4 %}<span class="pill pill--over">[X] Critical shared asset</span>
               {% elif deg >= 2 %}<span class="pill pill--due">[DUE] Shared</span>

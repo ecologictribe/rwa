@@ -40,10 +40,10 @@
     {% if principal.can('approve_member') %}
     <a class="btn" href="/admin/admissions">Form-X admissions</a>
     {% endif %}
-    {% if principal.can('publish_announcement') %}
+    {% if principal.can('publish_announcement') or principal.can('draft_announcement') %}
     <a class="btn" href="/admin/announcements">Announcements</a>
     {% endif %}
-    {% if principal.can('escalate_ticket') %}
+    {% if principal.can('escalate_ticket') or principal.can('log_walkin_ticket') %}
     <a class="btn" href="/admin/tickets">Helpdesk queue</a>
     {% endif %}
     {% if principal.can('manage_committee') %}

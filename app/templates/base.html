@@ -18,12 +18,13 @@
     })();
   </script>
   <link rel="stylesheet" href="{{ url_for('static', path='/css/app.css') }}">
+  <link rel="manifest" href="/manifest">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%23f7f5ee'/><rect x='2' y='2' width='12' height='12' fill='none' stroke='%23141413' stroke-width='2'/></svg>">
   <script src="{{ url_for('static', path='/vendor/htmx.min.js') }}" defer></script>
   <script src="{{ url_for('static', path='/js/theme.js') }}" defer></script>
   {% block head %}{% endblock %}
 </head>
-<body>
+<body {% if principal.csrf_token %}hx-headers='{"X-CSRF-Token": "{{ principal.csrf_token }}"}'{% endif %}>
 <a class="skip-link" href="#main">Skip to main content</a>
 
 <header class="site-header no-print">
@@ -92,6 +93,9 @@
       Haryana Registration and Regulation of Societies Rules, 2012.
       This portal performs no accounting, billing or payment functions.
     </p>
+    <div style="margin-top:10px; padding-top:8px; border-top:1px dashed var(--border, #ccc); font-size:12px; font-weight:500; color:var(--fg, #222); letter-spacing:0.3px;">
+      ✨ <em>From the Desk of Puneet Arora</em> &middot; <span class="muted">Conceived, Engineered &amp; Maintained for Society Digital Governance &amp; Statutory Transparency</span>
+    </div>
     <span class="rule-ref">Rule 23 verification block applies to all statutory register exports</span>
   </div>
 </footer>

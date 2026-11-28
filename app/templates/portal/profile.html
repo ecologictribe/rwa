@@ -2,11 +2,11 @@
 {% block title %}My Profile -- {{ society.name }}{% endblock %}
 {% block content %}
 <div class="page-head">
-  <span class="tag">Member Record</span>
-  <span class="tag tag--muted">Form-XI / Form-XII</span>
+  <span class="tag">Register of Members</span>
+  <span class="tag tag--muted">Form-XII (Sec. 18(1) &middot; Rule 12) &middot; Form-XI (Sec. 17 &middot; Rule 11(2))</span>
   <h1>My Profile &amp; Identity Card</h1>
-  <p>Your statutory particulars as held in the Register of Members. Report any
-     discrepancy to the society desk for correction.</p>
+  <p>Your statutory particulars as held in the Register of Members under the Haryana Registration and
+     Regulation of Societies Act, 2012. Report any discrepancy to the society desk for correction.</p>
 </div>
 
 <div class="grid grid--wide">
@@ -19,7 +19,17 @@
         <dt>Date of birth</dt><dd class="mono">{{ member.date_of_birth or '-' }}</dd>
         <dt>Member serial</dt><dd class="mono">{{ member.member_serial_no or '-' }}</dd>
         <dt>Category</dt><dd>{{ (member.membership_category or 'NONE').title() }}</dd>
+        <dt>Qualification</dt><dd>{{ member.qualification or 'Not specified' }}</dd>
         <dt>Occupation</dt><dd>{{ member.occupation or '-' }}</dd>
+        <dt>Aadhaar UID</dt><dd class="mono">{{ member.aadhaar_number | mask_aadhaar }}</dd>
+        <dt>ID Proof</dt>
+        <dd>
+          {% if member.id_proof_path %}
+          <a href="/portal/profile/id-proof" target="_blank" class="tag tag--accent">View Uploaded ID Proof &nearr;</a>
+          {% else %}
+          <span class="muted">Not uploaded (Optional)</span>
+          {% endif %}
+        </dd>
         <dt>Mobile</dt><dd class="mono">{{ member.mobile_number }}</dd>
         <dt>Email</dt><dd>{{ member.email }}</dd>
         <dt>Address</dt><dd>{{ member.permanent_address or '-' }}</dd>
@@ -78,6 +88,82 @@
     </div>
   </section>
 </div>
+
+{# ---- Self-service KYC & credential management ---- #}
+<section class="panel" style="margin-top:16px">
+  <div class="panel__head">
+    <h2>Manage My Credentials &amp; KYC Particulars</h2>
+    <span class="rule-ref">Optional Self-Service &middot; Sec. 21(5) &middot; Sec. 18(1)</span>
+  </div>
+  <div class="panel__body">
+    <p class="small muted">
+      You can update your personal information, Aadhaar details, educational qualifications, and upload documents at your convenience (Sec. 21(5) KYC credentials for District Registrar compliance). Document and photo uploads are strictly optional.
+    </p>
+    <form method="post" action="/portal/profile/update" enctype="multipart/form-data">
+      <div class="field-row">
+        <div class="field">
+          <label for="aadhaar_number">Aadhaar Number (12 Digits - Optional)</label>
+          <input type="text" id="aadhaar_number" name="aadhaar_number" maxlength="14"
+                 pattern="[0-9 ]{12,14}" inputmode="numeric"
+                 placeholder="e.g. 1234 5678 9012" value="{{ member.aadhaar_number or '' }}">
+          <span class="rule-ref">Stored securely; masked as XXXX-XXXX-1234 on public displays</span>
+        </div>
+        <div class="field">
+          <label for="qualification">Educational / Professional Qualification (Optional)</label>
+          <input type="text" id="qualification" name="qualification"
+                 placeholder="e.g. Graduate / Post Graduate / CA / Doctor / Engineer"
+                 value="{{ member.qualification or '' }}">
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="occupation">Occupation</label>
+          <input type="text" id="occupation" name="occupation" value="{{ member.occupation or '' }}">
+        </div>
+        <div class="field">
+          <label for="father_or_spouse_name">Father's / Spouse's Name</label>
+          <input type="text" id="father_or_spouse_name" name="father_or_spouse_name" value="{{ member.father_or_spouse_name or '' }}">
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="date_of_birth">Date of Birth</label>
+          <input type="date" id="date_of_birth" name="date_of_birth" max="{{ max_dob }}" value="{{ member.date_of_birth or '' }}">
+        </div>
+        <div class="field">
+          <label for="id_proof">Aadhaar / ID Proof Document (Optional PDF/JPG/PNG)</label>
+          <input type="file" id="id_proof" name="id_proof" accept=".pdf,.jpg,.jpeg,.png">
+          {% if member.id_proof_path %}
+          <span class="rule-ref">File on record: <a href="/portal/profile/id-proof" target="_blank">View current document &nearr;</a></span>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="profile_photo">Profile Photo (Optional JPG/PNG)</label>
+          <input type="file" id="profile_photo" name="profile_photo" accept=".jpg,.jpeg,.png">
+          {% if member.profile_photo_path %}
+          <span class="rule-ref">Photo on record: <a href="/portal/profile/photo" target="_blank">View current photo &nearr;</a></span>
+          {% endif %}
+        </div>
+        <div class="field">
+          <label for="residential_address">Residential Address</label>
+          <input type="text" id="residential_address" name="residential_address" value="{{ member.residential_address or '' }}">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="permanent_address">Permanent Address</label>
+        <textarea id="permanent_address" name="permanent_address" rows="2">{{ member.permanent_address or '' }}</textarea>
+      </div>
+
+      <button class="btn btn--primary" type="submit">Update Information</button>
+    </form>
+  </div>
+</section>
 
 <section class="panel">
   <div class="panel__head">

@@ -2,17 +2,20 @@
 {% block title %}Membership Directory -- {{ society.name }}{% endblock %}
 {% block content %}
 <div class="page-head">
-  <span class="tag">Membership &amp; Flat Directory</span>
-  <span class="tag tag--muted">Sec. 18(1) &middot; Rule 12</span>
-  <h1>Directory &amp; Bulk Edit Grid</h1>
-  <p>Spreadsheet-style editing across hundreds of rows, committed in a single
+  <span class="tag">HRRS Act Sec. 18(1) &middot; Form-XII</span>
+  <span class="tag tag--muted">Rule 12 &middot; 15-Day Commit SLA</span>
+  <h1>Membership Directory &amp; Register Grid</h1>
+  <p>Statutory Register of Members maintained under Section 18(1) of Haryana Registration and Regulation of Societies Act, 2012.
+     Spreadsheet-style editing across hundreds of rows, committed in a single
      atomic transaction with row-level audit diffs (spec 5.1).</p>
 </div>
 
 <div class="btn-group" style="margin-bottom:16px">
   <a class="btn" href="/admin">Back to dashboard</a>
+  <a class="btn btn--primary" href="/admin/directory/create">+ Add Member</a>
+  <a class="btn" href="/admin/directory/export/csv">Download Form-XII (CSV)</a>
   <a class="btn" href="/admin/exports">Statutory exports</a>
-  <a class="btn btn--primary" href="/admin/admissions">Form-X queue</a>
+  <a class="btn" href="/admin/admissions">Form-X queue</a>
 </div>
 
 <form method="get" action="/admin/directory" class="panel" style="padding:12px">
@@ -36,12 +39,13 @@
       <table>
         <thead>
           <tr>
-            <th style="width:22%">Name</th>
-            <th style="width:16%">Unit</th>
-            <th style="width:17%">Mobile</th>
-            <th style="width:21%">Email</th>
-            <th style="width:14%">Status</th>
+            <th style="width:20%">Name</th>
+            <th style="width:14%">Unit</th>
+            <th style="width:16%">Mobile</th>
+            <th style="width:18%">Email</th>
+            <th style="width:12%">Status</th>
             <th style="width:10%">Role</th>
+            <th style="width:10%">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -70,6 +74,9 @@
               </select>
             </td>
             <td><span class="tag tag--muted">{{ r.role.replace('_',' ') }}</span></td>
+            <td>
+              <a class="btn btn--sm" href="/admin/directory/{{ r.id }}/edit">Edit</a>
+            </td>
           </tr>
           {% endfor %}
         </tbody>

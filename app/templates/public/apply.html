@@ -23,7 +23,7 @@
 </div>
 {% endif %}
 
-<form method="post" action="/apply" class="panel" novalidate>
+<form method="post" action="/apply" enctype="multipart/form-data" class="panel" novalidate>
   <div class="panel__head">
     <h2>Part A &mdash; Personal Particulars</h2>
     <span class="rule-ref">Rule 11(1) (Form-X) &amp; Rule 12 (Form-XII)</span>
@@ -32,14 +32,14 @@
     <div class="field-row">
       <div class="field">
         <label for="applicant_name">Applicant full legal name *</label>
-        <input type="text" id="applicant_name" name="applicant_name" required
+        <input type="text" id="applicant_name" name="applicant_name" required minlength="3"
                autocomplete="name" value="{{ values.get('applicant_name','') }}"
                placeholder="As printed on identity proof">
         <p class="field__hint">Recorded verbatim in Form-XII. (Sec. 18(1), Sec. 21(5))</p>
       </div>
       <div class="field">
         <label for="father_or_spouse_name">Father's / spouse's name *</label>
-        <input type="text" id="father_or_spouse_name" name="father_or_spouse_name" required
+        <input type="text" id="father_or_spouse_name" name="father_or_spouse_name" required minlength="3"
                value="{{ values.get('father_or_spouse_name','') }}">
         <p class="field__hint">Mandatory statutory particular. (Rule 11(1))</p>
       </div>
@@ -49,7 +49,7 @@
       <div class="field">
         <label for="date_of_birth">Date of birth *</label>
         <input type="date" id="date_of_birth" name="date_of_birth" required
-               max="{{ today }}" value="{{ values.get('date_of_birth','') }}">
+               max="{{ max_dob }}" value="{{ values.get('date_of_birth','') }}">
         <p class="field__hint">
           Must be at least 21 years old on the date of admission.
           <span class="tag tag--muted">Sec. 16(i)</span>
@@ -66,6 +66,27 @@
           {% endfor %}
         </select>
         <p class="field__hint">Categories registered under the bye-laws. (Sec. 15)</p>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label for="aadhaar_number">Aadhaar number (Optional)</label>
+        <input type="text" id="aadhaar_number" name="aadhaar_number" maxlength="14"
+               pattern="[0-9 ]{12,14}" inputmode="numeric"
+               value="{{ values.get('aadhaar_number','') }}" placeholder="e.g. 1234 5678 9012">
+        <p class="field__hint">Optional at application; statutory KYC credentials under Sec. 21(5) &amp; Haryana portal master.</p>
+      </div>
+      <div class="field">
+        <label for="qualification">Educational qualification (Optional)</label>
+        <input type="text" id="qualification" name="qualification"
+               value="{{ values.get('qualification','') }}" placeholder="e.g. Graduate / CA / Doctor">
+        <p class="field__hint">Haryana portal KYC master particulars under Sec. 21(5).</p>
+      </div>
+      <div class="field">
+        <label for="occupation">Occupation</label>
+        <input type="text" id="occupation" name="occupation"
+               value="{{ values.get('occupation','') }}" placeholder="e.g. Service / Business">
       </div>
     </div>
 
@@ -108,7 +129,7 @@
 
     <div class="field">
       <label for="permanent_address">Permanent address *</label>
-      <textarea id="permanent_address" name="permanent_address" required
+      <textarea id="permanent_address" name="permanent_address" required minlength="5"
                 placeholder="House, street, city, state, PIN">{{ values.get('permanent_address','') }}</textarea>
       <p class="field__hint">Proof of identity and address is recorded in the register.
          (Sec. 21(5))</p>
@@ -156,12 +177,12 @@
       </div>
       <div class="field">
         <label for="fee_instrument_number">Instrument number *</label>
-        <input type="text" id="fee_instrument_number" name="fee_instrument_number" required
+        <input type="text" id="fee_instrument_number" name="fee_instrument_number" required minlength="3"
                value="{{ values.get('fee_instrument_number','') }}" placeholder="001234">
       </div>
       <div class="field">
         <label for="fee_instrument_bank">Issuing bank *</label>
-        <input type="text" id="fee_instrument_bank" name="fee_instrument_bank" required
+        <input type="text" id="fee_instrument_bank" name="fee_instrument_bank" required minlength="2"
                value="{{ values.get('fee_instrument_bank','') }}" placeholder="Bank & branch">
       </div>
       <div class="field">

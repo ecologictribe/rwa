@@ -86,6 +86,11 @@
           </p>
           {% if a.proof_filename %}
           <p class="rule-ref">Proof attached: {{ a.proof_filename }} (Sec. 21(5))</p>
+          {% if a.id_proof_path %}
+          <div style="margin:4px 0 8px">
+            <a class="btn btn--sm" href="/admin/admissions/{{ a.id }}/proof" target="_blank">View Attached Proof (Sec. 21(5))</a>
+          </div>
+          {% endif %}
           {% endif %}
           {% if a.status == 'REJECTED' and a.rejection_reason %}
           <div class="alert alert--error"><p class="alert__title">Rejected</p>

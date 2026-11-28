@@ -18,24 +18,26 @@
   </div>
 </article>
 
-{# ---- One-tap sharing toolkit (spec 5.4) ---- #}
+{# ---- One-tap sharing toolkit (spec 5.4 with statutory references) ---- #}
+{% set reg_str = ' (Reg. No: ' ~ society.registration_number ~ ')' if society.registration_number else '' %}
+{% set share_text = '🏛️ ' ~ society.name ~ reg_str ~ '\n📜 Official Notice [HRRS Act, 2012 Sec. 10(2) & Rule 6]\n📌 ' ~ notice.title ~ '\n\n🔗 Read full notice: ' ~ request.url ~ '\n-- Governing Body (Sec. 34)' %}
 <div class="panel no-print">
-  <div class="panel__head"><h2>Share this notice</h2><span class="rule-ref">Zero-friction toolkit</span></div>
+  <div class="panel__head"><h2>Share this notice</h2><span class="rule-ref">Sec. 10(2) &amp; Rule 6 &middot; Zero-friction toolkit</span></div>
   <div class="panel__body">
     <div class="btn-group">
       <button class="btn" type="button"
-              onclick="navigator.share ? navigator.share({title: {{ notice.title|tojson }}, url: location.href}) : alert('Sharing is not supported on this browser -- use Copy instead.')">
+              onclick="navigator.share ? navigator.share({title: {{ notice.title|tojson }}, text: {{ share_text|tojson }}, url: location.href}) : alert('Sharing is not supported on this browser -- use Copy instead.')">
         Native share
       </button>
       <a class="btn" target="_blank" rel="noopener"
-         href="https://wa.me/?text={{ (notice.title ~ ' -- ' ~ society.name ~ ' -- ' ~ request.url)|urlencode }}">
+         href="https://wa.me/?text={{ share_text|urlencode }}">
         WhatsApp
       </a>
-      <button class="btn" type="button" id="copy-summary">Copy summary &amp; link</button>
+      <button class="btn" type="button" id="copy-summary" data-share-text="{{ share_text }}">Copy summary &amp; link</button>
       <button class="btn btn--ghost" type="button" onclick="window.print()">Print A4 poster</button>
     </div>
     <p class="rule-ref" style="margin-top:10px">
-      The printed copy carries the statutory Society header (Sec. 10(2)) and a version stamp
+      The printed copy carries the statutory Society header (HRRS Act Sec. 10(2) &amp; Rule 6) and a version stamp
       for the physical notice board.
     </p>
   </div>
@@ -45,17 +47,29 @@
   <a class="btn" href="/notices">All notices</a>
   <a class="btn btn--ghost" href="/">Public dashboard</a>
 </div>
+{% endblock %}
 
 {% block scripts %}
 <script>
 document.getElementById("copy-summary").addEventListener("click", function () {
-  var text = {{ (notice.title ~ '\n\n' ~ request.url)|tojson }};
+  var text = this.getAttribute("data-share-text") || "";
+  if (!text) {
+    var shareLink = document.querySelector('a[href*="wa.me/?text="]');
+    if (shareLink) {
+      var parts = shareLink.getAttribute('href').split('text=');
+      if (parts.length > 1) {
+        text = decodeURIComponent(parts[1]);
+      }
+    }
+  }
+  if (!text) {
+    text = window.location.href;
+  }
   if (navigator.clipboard) {
-    navigator.clipboard.writeText(text).then(function () { alert("Summary and link copied."); });
+    navigator.clipboard.writeText(text).then(function () { alert("Summary with statutory citation copied to clipboard."); });
   } else {
     alert(text);
   }
 });
 </script>
-{% endblock %}
 {% endblock %}

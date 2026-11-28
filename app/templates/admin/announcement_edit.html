@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Edit Notice -- {{ society.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <span class="tag">HRRS Act Sec. 10(2) &middot; Rule 6</span>
+  <span class="tag tag--muted">Statutory Notice Revision</span>
+  <h1>Edit Notice</h1>
+  <p>Update title, priority, markdown content, or visibility. Every revision carries the registered society identity and is recorded in the immutable audit log under Sec. 10(2).</p>
+</div>
+
+<div class="btn-group" style="margin-bottom:18px">
+  <a class="btn" href="/admin/announcements">&larr; Back to notices</a>
+  <a class="btn btn--ghost" href="/notices/{{ announcement.slug }}" target="_blank">View public page &nearr;</a>
+</div>
+
+<div class="grid grid--wide">
+  <form method="post" action="/admin/announcements/{{ announcement.id }}/edit" class="panel">
+    <div class="panel__head">
+      <h2>Edit Notice Details</h2>
+      <span class="rule-ref">Slug: {{ announcement.slug }}</span>
+    </div>
+    <div class="panel__body">
+      <div class="field">
+        <label for="title">Title</label>
+        <input type="text" id="title" name="title" required minlength="3" maxlength="160" value="{{ announcement.title }}">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="priority">Priority</label>
+          <select id="priority" name="priority">
+            <option value="GENERAL" {% if announcement.priority == 'GENERAL' %}selected{% endif %}>General</option>
+            <option value="URGENT" {% if announcement.priority == 'URGENT' %}selected{% endif %}>Urgent</option>
+            <option value="SHUTDOWN" {% if announcement.priority == 'SHUTDOWN' %}selected{% endif %}>Shutdown</option>
+            <option value="AGM_NOTICE" {% if announcement.priority == 'AGM_NOTICE' %}selected{% endif %}>AGM notice</option>
+            <option value="EVENT" {% if announcement.priority == 'EVENT' %}selected{% endif %}>Event</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Visibility</label>
+          <label class="checkbox" for="is_public">
+            <input type="checkbox" id="is_public" name="is_public" {% if announcement.is_public %}checked{% endif %}>
+            <span>Show in the public zone (zero login)</span>
+          </label>
+          <label class="checkbox" for="is_pinned">
+            <input type="checkbox" id="is_pinned" name="is_pinned" {% if announcement.is_pinned %}checked{% endif %}>
+            <span>Pin to the top</span>
+          </label>
+        </div>
+      </div>
+      <div class="field">
+        <label for="body_markdown">Body (Markdown)</label>
+        <textarea id="body_markdown" name="body_markdown" required minlength="10" rows="12">{{ announcement.body_markdown }}</textarea>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn--primary" type="submit">Save Changes</button>
+        <a class="btn btn--ghost" href="/admin/announcements">Cancel</a>
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %}

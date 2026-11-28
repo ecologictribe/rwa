@@ -6,6 +6,7 @@ import back through ``app.main``.
 
 from __future__ import annotations
 
+from datetime import date
 import json
 
 from fastapi import Request
@@ -15,6 +16,18 @@ from . import config, db
 from .security import Principal
 
 templates = Jinja2Templates(directory=config.TEMPLATE_DIR)
+
+
+def mask_aadhaar(val: str | None) -> str:
+    if not val:
+        return "-"
+    clean = str(val).replace(" ", "").replace("-", "")
+    if len(clean) >= 4:
+        return f"XXXX-XXXX-{clean[-4:]}"
+    return str(val)
+
+
+templates.env.filters["mask_aadhaar"] = mask_aadhaar
 
 THEMES = [
     {"id": "retro-paper", "label": "Paper"},
@@ -47,12 +60,19 @@ def render(request: Request, name: str, context: dict | None = None, status_code
     if principal is None:
         from .security import Principal
         principal = Principal(None)
+    today = date.today()
+    try:
+        max_dob = today.replace(year=today.year - 21).isoformat()
+    except ValueError:
+        max_dob = date(today.year - 21, 2, 28).isoformat()
     ctx = {
         "request": request,
         "principal": principal,
         "society": society_context(),
         "themes": THEMES,
         "messages": getattr(request.state, "messages", []),
+        "today": today.isoformat(),
+        "max_dob": max_dob,
     }
     if context:
         ctx.update(context)

@@ -21,7 +21,9 @@ router = APIRouter()
 
 
 def _safe_next(target: str | None) -> str:
-    if not target or not target.startswith("/") or target.startswith("//"):
+    if not target or not target.startswith("/") or target.startswith("//") or target.startswith("/\\"):
+        return "/portal"
+    if "\\" in target:
         return "/portal"
     return target
 
@@ -44,11 +46,12 @@ def login_submit(
     password: str = Form(...),
     next: str = Form("/portal"),
 ):
-    email = email.strip().lower()
+    raw_input = email.strip()
+    clean_mob = raw_input.replace(" ", "").replace("-", "")
     row = db.query_one(
         """SELECT * FROM users
-           WHERE lower(email) = ? OR mobile_number = ? OR lower(COALESCE(member_serial_no,'')) = ?""",
-        (email, email.strip(), email.strip()),
+           WHERE lower(email) = ? OR mobile_number = ? OR mobile_number = ? OR member_serial_no = ? COLLATE NOCASE""",
+        (raw_input.lower(), raw_input, clean_mob, raw_input),
     )
 
     if row is None or not security.verify_password(password, row["password_hash"]):
@@ -151,10 +154,11 @@ def claim_submit(
     email = email.strip().lower()
 
     row = db.query_one(
-        """SELECT u.* FROM users u JOIN units un ON un.id = u.unit_id
-           WHERE upper(un.canonical_code) = ?
+        """SELECT u.* FROM users u
+           LEFT JOIN units un ON un.id = u.unit_id
+           WHERE (upper(COALESCE(un.canonical_code,'')) = ? OR upper(COALESCE(u.residential_address,'')) = ?)
              AND (u.mobile_number = ? OR lower(u.email) = ?)""",
-        (flat_code, mobile_number, email),
+        (flat_code, flat_code, mobile_number, email),
     )
     if row is None:
         return claim_form(

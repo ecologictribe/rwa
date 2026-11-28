@@ -6,14 +6,17 @@ self-registration application.
 
 from __future__ import annotations
 
+import shutil
 from datetime import date, datetime
+from pathlib import Path
 
 import markdown as md
-from fastapi import APIRouter, Form, Request
+from fastapi import APIRouter, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from .. import audit, config, db, security
 from ..render import flash, render
+from ..storage import is_at_least_21, term_progress
 
 router = APIRouter()
 
@@ -51,13 +54,6 @@ def days_between(a: date, b: date) -> int:
     return (b - a).days
 
 
-def term_progress(start: date, end: date, today: date) -> tuple[int, int, int]:
-    """Returns (elapsed_pct, days_left, total_days)."""
-    total = max((end - start).days, 1)
-    elapsed = min(max((today - start).days, 0), total)
-    return round(elapsed * 100 / total), total - elapsed, total
-
-
 # ---------------------------------------------------------------------------
 # Home
 # ---------------------------------------------------------------------------
@@ -93,7 +89,7 @@ def home(request: Request):
         """SELECT COUNT(*) AS total,
                   SUM(CASE WHEN status = 'RESOLVED' THEN 1 ELSE 0 END) AS resolved,
                   AVG(CASE WHEN resolved_at IS NOT NULL
-                           THEN julianday(resolved_at) - julianday(created_at) END) AS mean_days
+                           THEN (unixepoch(resolved_at) - unixepoch(created_at)) / 86400.0 END) AS mean_days
            FROM tickets"""
     )
 
@@ -237,7 +233,7 @@ def governance(request: Request, filter: str = "all"):
         """SELECT COUNT(*) AS total,
                   SUM(CASE WHEN status = 'RESOLVED' THEN 1 ELSE 0 END) AS resolved,
                   AVG(CASE WHEN resolved_at IS NOT NULL
-                           THEN julianday(resolved_at) - julianday(created_at) END) AS mean_days
+                           THEN (unixepoch(resolved_at) - unixepoch(created_at)) / 86400.0 END) AS mean_days
            FROM tickets"""
     )
 
@@ -334,7 +330,12 @@ def contacts(request: Request):
 # ---------------------------------------------------------------------------
 
 @router.get("/apply", response_class=HTMLResponse)
-def apply_form(request: Request, errors: list[str] | None = None, values: dict | None = None):
+def apply_form(
+    request: Request,
+    errors: list[str] | None = None,
+    values: dict | None = None,
+    status_code: int = 200,
+):
     units = db.query_all(
         """SELECT u.*, (SELECT COUNT(*) FROM users x WHERE x.unit_id = u.id) AS occupants
            FROM units u ORDER BY u.canonical_code"""
@@ -349,11 +350,12 @@ def apply_form(request: Request, errors: list[str] | None = None, values: dict |
             "categories": CATEGORY_LABELS,
             "today": date.today().isoformat(),
         },
+        status_code=status_code,
     )
 
 
 @router.post("/apply", response_class=HTMLResponse)
-def apply_submit(
+async def apply_submit(
     request: Request,
     applicant_name: str = Form(...),
     father_or_spouse_name: str = Form(...),
@@ -364,6 +366,9 @@ def apply_submit(
     email: str = Form(...),
     permanent_address: str = Form(...),
     residential_address: str = Form(""),
+    occupation: str = Form(""),
+    qualification: str = Form(""),
+    aadhaar_number: str = Form(""),
     fee_instrument_type: str = Form(...),
     fee_instrument_number: str = Form(...),
     fee_instrument_bank: str = Form(...),
@@ -372,6 +377,7 @@ def apply_submit(
     decl_insolvent: str = Form(""),
     decl_sound_mind: str = Form(""),
     decl_moral_turpitude: str = Form(""),
+    proof: UploadFile = File(None),
 ):
     errors: list[str] = []
     values = {
@@ -384,6 +390,9 @@ def apply_submit(
         "email": email,
         "permanent_address": permanent_address,
         "residential_address": residential_address,
+        "occupation": occupation,
+        "qualification": qualification,
+        "aadhaar_number": aadhaar_number,
         "fee_instrument_type": fee_instrument_type,
         "fee_instrument_number": fee_instrument_number,
         "fee_instrument_bank": fee_instrument_bank,
@@ -398,30 +407,34 @@ def apply_submit(
         errors.append("Date of birth is not a valid date.")
     today = date.today()
     if dob:
-        twenty_first = dob.replace(year=dob.year + 21)
-        if twenty_first > today:
+        if not is_at_least_21(dob, today):
             errors.append(
                 "Sec. 16(i): an applicant must have completed 21 years of age "
                 "on the date of admission."
             )
 
     # --- Required fields (Rule 11(1)) -------------------------------------
-    if not applicant_name.strip():
-        errors.append("Applicant full legal name is required (Sec. 18(1)).")
-    if not father_or_spouse_name.strip():
-        errors.append("Father's / spouse's name is required (Rule 11(1)).")
+    if len(applicant_name.strip()) < 3:
+        errors.append("Applicant full legal name is required (at least 3 characters, Sec. 18(1)).")
+    if len(father_or_spouse_name.strip()) < 3:
+        errors.append("Father's / spouse's name is required (at least 3 characters, Rule 11(1)).")
     if membership_category not in CATEGORY_LABELS:
         errors.append("Select a membership category registered under the bye-laws (Sec. 15).")
     if not flat_id:
         errors.append("Flat / house / plot ID is required.")
-    if len(mobile_number.replace(" ", "").replace("+", "")) < 10:
+    if len(mobile_number.replace(" ", "").replace("+", "").replace("-", "")) < 10:
         errors.append("A valid 10-digit mobile number is required (Sec. 18(1)).")
     if "@" not in email or "." not in email.split("@")[-1]:
         errors.append("A valid email address is required.")
-    if not permanent_address.strip():
-        errors.append("Permanent address is required (Sec. 21(5)).")
+    if len(permanent_address.strip()) < 5:
+        errors.append("Permanent address is required (at least 5 characters, Sec. 21(5)).")
     if not residential_address.strip():
         residential_address = permanent_address
+
+    # --- Optional Aadhaar validation (optional per member convenience) -----
+    clean_aadhaar = aadhaar_number.replace(" ", "").replace("-", "")
+    if clean_aadhaar and (len(clean_aadhaar) != 12 or not clean_aadhaar.isdigit()):
+        errors.append("Aadhaar Number must be a valid 12-digit number (or leave blank if providing later).")
 
     # --- Rule 11(1): cash is strictly disabled ---------------------------
     if fee_instrument_type.upper() in {"CASH", "CASH_", "NOTES"}:
@@ -467,37 +480,63 @@ def apply_submit(
                 "Contact the society desk for an in-person reset."
             )
     dup_app = db.query_one(
-        "SELECT id FROM form_x_applications WHERE lower(email) = lower(?) AND status = 'PENDING_VERIFICATION'",
-        (email.strip(),),
+        """SELECT id FROM form_x_applications
+           WHERE (lower(email) = lower(?) OR mobile_number = ?)
+             AND status = 'PENDING_VERIFICATION'""",
+        (email.strip(), mobile_number.strip()),
     )
     if dup_app:
-        errors.append("A Form-X application from this email is already awaiting verification.")
+        errors.append("A Form-X application from this email or mobile number is already awaiting verification.")
+
+    # --- Proof file upload validation ------------------------------------
+    proof_filename = None
+    id_proof_path = None
+    if proof and proof.filename:
+        ext = Path(proof.filename).suffix.lower()
+        if ext not in {".pdf", ".jpg", ".jpeg", ".png"}:
+            errors.append("Identity proof must be a PDF, JPG, or PNG file (Sec. 21(5)).")
+        else:
+            proof_filename = Path(proof.filename).name
 
     if errors:
-        return apply_form(request, errors=errors, values=values)
+        return apply_form(request, errors=errors, values=values, status_code=422)
 
     # --- Persist ----------------------------------------------------------
     society_id = db.scalar("SELECT id FROM societies LIMIT 1")
     app_id = db.new_id()
+
+    if proof and proof.filename and proof_filename:
+        ext = Path(proof.filename).suffix.lower()
+        id_proof_path = f"form_x_{app_id}{ext}"
+        target_dest = config.UPLOAD_DIR / id_proof_path
+        with open(target_dest, "wb") as buffer:
+            shutil.copyfileobj(proof.file, buffer)
+
     db.execute(
         """INSERT INTO form_x_applications
            (id, society_id, applicant_name, father_or_spouse_name, date_of_birth,
+            occupation, qualification, aadhaar_number,
             membership_category, flat_id, mobile_number, email, permanent_address,
-            residential_address, fee_instrument_ref, sec16_declarations,
-            aims_subscribed, status, created_at)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            residential_address, proof_filename, id_proof_path, fee_instrument_ref,
+            sec16_declarations, aims_subscribed, status, created_at)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
         (
             app_id,
             society_id,
             applicant_name.strip(),
             father_or_spouse_name.strip(),
             date_of_birth,
+            occupation.strip() or None,
+            qualification.strip() or None,
+            clean_aadhaar or None,
             membership_category,
             flat_id,
             mobile_number.strip(),
             email.strip().lower(),
             permanent_address.strip(),
             residential_address.strip(),
+            proof_filename,
+            id_proof_path,
             db.to_json({
                 "type": fee_instrument_type,
                 "number": fee_instrument_number.strip(),

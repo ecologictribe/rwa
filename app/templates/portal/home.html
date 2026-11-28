@@ -4,10 +4,11 @@
 <div class="page-head">
   <span class="tag tag--accent">Member Workspace</span>
   <span class="tag">{{ member.role.replace('_',' ').title() }}</span>
+  <span class="tag tag--muted">HRRS Act Sec. 19 &amp; Sec. 20(3) Statutory Rights</span>
   {% if member.member_serial_no %}<span class="tag tag--muted">Serial {{ member.member_serial_no }}</span>{% endif %}
   <h1>Welcome, {{ member.full_name }}</h1>
-  <p>Your unit, notices, helpdesk tickets and approved documents. This workspace
-     performs no accounting, billing or payment functions.</p>
+  <p>Your unit, notices, helpdesk tickets and approved documents. Governed under the Haryana Registration and Regulation of
+     Societies Act, 2012. This workspace performs no accounting, billing or payment functions.</p>
 </div>
 
 {# ---- Form-XII 15-day statutory countdown (Sec. 18(1)) ---- #}
@@ -103,7 +104,7 @@
 
   {# ---- My unit & occupancy lineage (spec 6.1) ---- #}
   <section class="panel">
-    <div class="panel__head"><h2>My Unit</h2><span class="rule-ref">Occupancy lineage</span></div>
+    <div class="panel__head"><h2>My Unit</h2><span class="rule-ref">Sec. 18(1) &middot; Occupancy lineage</span></div>
     <div class="panel__body">
       {% if unit %}
       <dl class="meta">
@@ -135,7 +136,7 @@
       {% endif %}
       <p class="rule-ref" style="margin-top:10px">
         Path traversal over the entity graph (Sec. 22 dispute inquiries,
-        Form-X admission vetting).
+        Form-X admission vetting under Sec. 18(1) &amp; Sec. 21(5)).
       </p>
       {% else %}
       <p class="muted mb-0">Your account is not yet linked to a unit. Contact the
@@ -195,7 +196,14 @@
           <td data-label="Action">
             {% if t.status == 'AWAITING_CONFIRMATION' %}
             <form method="post" action="/portal/tickets/{{ t.id }}/confirm" style="display:inline">
-              <button class="btn btn--sm btn--primary" type="submit">Confirm resolved</button>
+              <button class="btn btn--sm btn--primary" type="submit">Confirm</button>
+            </form>
+            <form method="post" action="/portal/tickets/{{ t.id }}/reopen" style="display:inline; margin-left:4px">
+              <button class="btn btn--sm btn--ghost" type="submit">Reopen</button>
+            </form>
+            {% elif t.status == 'RESOLVED' %}
+            <form method="post" action="/portal/tickets/{{ t.id }}/reopen" style="display:inline">
+              <button class="btn btn--sm btn--ghost" type="submit">Reopen</button>
             </form>
             {% else %}<span class="rule-ref">--</span>{% endif %}
           </td>
@@ -213,7 +221,8 @@
 {# ---- Documents ---- #}
 <section style="margin-top:20px">
   <div class="page-head" style="border-bottom-width:1px">
-    <h2>Approved Documents</h2>
+    <h2>Approved Documents &amp; Minutes Vault</h2>
+    <span class="rule-ref">Sec. 19 &amp; Sec. 20(3) Right of Inspection &middot; Sec. 37 Confirmed MoM</span>
     <p>Published versions are never overwritten. Superseded revisions remain
        downloadable with an archive watermark (spec 5.3).</p>
   </div>

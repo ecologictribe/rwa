@@ -3,11 +3,11 @@
 {% block content %}
 <div class="page-head">
   <span class="tag tag--accent">Statutory Register Exports</span>
-  <span class="tag tag--muted">Rule 23 two-signatory endorsement</span>
+  <span class="tag tag--muted">Haryana Act No. 1 of 2012 &middot; Rule 23 Verification</span>
   <h1>Forms, Registers &amp; Returns</h1>
-  <p>One-click generation of the prescribed statutory artifacts. Every export
-     carries the registered Society identity header (Sec. 10(2)) and the Rule 23
-     verification declaration block for endorsement by any two office-bearers.</p>
+  <p>One-click generation of the prescribed statutory artifacts under the Haryana Registration and Regulation of Societies
+     Act, 2012 and Rules, 2012. Every export carries the registered Society identity header (Sec. 10(2) &amp; Rule 6)
+     and the Rule 23 verification declaration block for endorsement by any two office-bearers.</p>
 </div>
 
 <div class="btn-group" style="margin-bottom:18px">
@@ -61,11 +61,20 @@
         above 300 (Sec. 30).
       </p>
       {% endif %}
+    {% elif code == 'FORM_XII' %}
+      <p class="card__meta">Includes full member roster with flat allocations, dates of admission, and Rule 23 verification block.</p>
+      <div class="btn-group">
+        <a class="btn btn--sm btn--primary" href="/admin/exports/form-xii/csv">Download CSV</a>
+        <button class="btn btn--sm" type="button" onclick="window.print()">Print preview</button>
+      </div>
     {% elif code == 'FORM_XV' %}
       <p class="card__meta">Separates inclusions and deletions within 60 days of
          the financial year close (or 30 days post-AGM), paired with the
          two-office-bearer verification endorsement (Sec. 18(3)-(4), Rule 13).</p>
-      <button class="btn btn--sm btn--primary" type="button" onclick="window.print()">Generate</button>
+      <div class="btn-group">
+        <a class="btn btn--sm btn--primary" href="/admin/exports/form-xv/csv">Download CSV</a>
+        <button class="btn btn--sm" type="button" onclick="window.print()">Print preview</button>
+      </div>
     {% elif code == 'RULE_23' %}
       <p class="card__meta">Prescribed verification declaration for endorsement by
          any two office-bearers / Governing Body members on all statutory
@@ -78,6 +87,26 @@
     {% endif %}
   </article>
   {% endfor %}
+
+  <article class="card">
+    <div class="badge-row">
+      <span class="tag tag--accent">HELPDESK_LOG</span>
+      <span class="tag tag--muted">SLA Telemetry</span>
+    </div>
+    <h3 class="card__title">Helpdesk Tickets Register</h3>
+    <p class="card__meta">Complete log of all complaint tickets, categories, turnaround times (MTTR), and resolution statuses.</p>
+    <a class="btn btn--sm btn--primary" href="/admin/exports/tickets/csv">Download CSV</a>
+  </article>
+
+  <article class="card">
+    <div class="badge-row">
+      <span class="tag tag--accent">AUDIT_TRAIL</span>
+      <span class="tag tag--muted">Sec. 37 &amp; Evidence-Grade</span>
+    </div>
+    <h3 class="card__title">Immutable Audit Trail</h3>
+    <p class="card__meta">Full cryptographic activity log with timestamp, actor, IP address, statutory rule reference, and JSON diffs.</p>
+    <a class="btn btn--sm btn--primary" href="/admin/exports/audit/csv">Download CSV</a>
+  </article>
 </div>
 
 {# ---- Preview: Form-XII register extract ---- #}

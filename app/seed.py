@@ -543,6 +543,16 @@ def build() -> None:
                     now,
                 ),
             )
+            from .storage import ensure_pdf_file_exists, get_safe_upload_path
+            target_p = get_safe_upload_path(f"uploads/{cat.lower()}_v{v}.pdf")
+            if target_p:
+                ensure_pdf_file_exists(
+                    target_p,
+                    title,
+                    cat,
+                    v,
+                    uuid.uuid5(NS, f"checksum-{i}-{v}").hex * 2,
+                )
 
     # -- 8. Helpdesk tickets ---------------------------------------------
     categories = [

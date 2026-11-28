@@ -33,6 +33,51 @@
   </div>
 </div>
 
+{% if taleb and taleb.count %}
+<div class="panel" style="margin-bottom:18px">
+  <div class="panel__head">
+    <h2>Taleb Extremistan &amp; Fat-Tail Outage Diagnostics</h2>
+    <span class="rule-ref">Pramāna Rigor &middot; Taleb R_n Ratio &middot; Non-Gaussian Dispersion</span>
+  </div>
+  <div class="panel__body">
+    <div class="stat-strip">
+      <div class="stat">
+        <div class="stat__value">{{ taleb.median }}h</div>
+        <div class="stat__label">Median MTTR (p50)</div>
+        <div class="stat__note">Robust operational baseline</div>
+      </div>
+      <div class="stat">
+        <div class="stat__value">{{ taleb.p90 }}h</div>
+        <div class="stat__label">p90 Outage Tail</div>
+        <div class="stat__note">90th percentile duration</div>
+      </div>
+      <div class="stat">
+        <div class="stat__value">{{ taleb.max }}h</div>
+        <div class="stat__label">Max Event (X_max)</div>
+        <div class="stat__note">Worst recorded outage</div>
+      </div>
+      <div class="stat">
+        <div class="stat__value">{{ taleb.r_n }}</div>
+        <div class="stat__label">Max-to-Sum Ratio (R_n)</div>
+        <div class="stat__note">Taleb threshold: 0.15</div>
+      </div>
+      <div class="stat">
+        <div class="stat__value">{{ taleb.rel_mad }}</div>
+        <div class="stat__label">Relative MAD</div>
+        <div class="stat__note">MAD / Mean dispersion</div>
+      </div>
+    </div>
+    <div style="margin-top:10px">
+      {% if taleb.is_extremistan %}
+      <span class="pill pill--over">[!] Extremistan Tail Dominance (R_n = {{ taleb.r_n }} &ge; 0.15) &mdash; Chronic single-asset downtime concentration detected.</span>
+      {% else %}
+      <span class="pill pill--ok">[OK] Mediocristan Outage Distribution (R_n = {{ taleb.r_n }} &lt; 0.15) &mdash; Uniform component reliability.</span>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
 <section class="panel">
   <div class="panel__head"><h2>Category breakdown</h2><span class="rule-ref">Open vs total</span></div>
   <div class="panel__body">

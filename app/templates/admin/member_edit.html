@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% block title %}Edit Member Dossier -- {{ member.full_name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <span class="tag">Membership Directory</span>
+  <span class="tag tag--muted">Serial: {{ member.member_serial_no or 'Pending' }}</span>
+  <h1>Member Dossier: {{ member.full_name }}</h1>
+  <p>Update statutory particulars, unit allocation, membership category, or record formal cessation under Sec. 18 &amp; Rule 12.</p>
+</div>
+
+<div class="btn-group" style="margin-bottom:18px">
+  <a class="btn" href="/admin/directory">&larr; Back to directory</a>
+</div>
+
+<div class="grid grid--wide">
+  <form method="post" action="/admin/directory/{{ member.id }}/edit" class="panel">
+    <div class="panel__head">
+      <h2>Statutory Particulars &amp; Identity</h2>
+      <span class="rule-ref">Registered in Form-XII</span>
+    </div>
+    <div class="panel__body">
+      <div class="field-row">
+        <div class="field">
+          <label for="full_name">Full Legal Name *</label>
+          <input type="text" id="full_name" name="full_name" required minlength="3" value="{{ member.full_name }}">
+        </div>
+        <div class="field">
+          <label for="father_or_spouse_name">Father's / Spouse's Name</label>
+          <input type="text" id="father_or_spouse_name" name="father_or_spouse_name" value="{{ member.father_or_spouse_name or '' }}">
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="date_of_birth">Date of Birth</label>
+          <input type="date" id="date_of_birth" name="date_of_birth" max="{{ max_dob }}" value="{{ member.date_of_birth or '' }}">
+        </div>
+        <div class="field">
+          <label for="qualification">Educational Qualification</label>
+          <input type="text" id="qualification" name="qualification" value="{{ member.qualification or '' }}" placeholder="e.g. Graduate / CA / Doctor">
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="occupation">Occupation</label>
+          <input type="text" id="occupation" name="occupation" value="{{ member.occupation or '' }}">
+        </div>
+        <div class="field">
+          <label for="aadhaar_number">Aadhaar Number (Optional)</label>
+          <input type="text" id="aadhaar_number" name="aadhaar_number" maxlength="14" pattern="[0-9 ]{12,14}" inputmode="numeric" value="{{ member.aadhaar_number or '' }}" placeholder="12-digit Aadhaar UID">
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="mobile_number">Mobile Number *</label>
+          <input type="tel" id="mobile_number" name="mobile_number" required pattern="[+0-9 ]{10,16}" inputmode="tel" value="{{ member.mobile_number }}">
+        </div>
+        <div class="field">
+          <label for="email">Email Address *</label>
+          <input type="email" id="email" name="email" required value="{{ member.email }}">
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="unit_id">Flat / Unit Allocation</label>
+          <select id="unit_id" name="unit_id">
+            <option value="">-- No Unit Allocated --</option>
+            {% for u in units %}
+            <option value="{{ u.id }}" {% if member.unit_id == u.id %}selected{% endif %}>
+              {{ u.canonical_code }} ({{ u.block_tower }} - {{ u.unit_number }})
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="membership_category">Membership Category</label>
+          <select id="membership_category" name="membership_category">
+            {% for code, label in categories.items() %}
+            <option value="{{ code }}" {% if member.membership_category == code %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="role">Role</label>
+          <select id="role" name="role">
+            {% for code, label in roles %}
+            <option value="{{ code }}" {% if member.role == code %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label for="account_status">Account Status</label>
+          <select id="account_status" name="account_status">
+            {% for s in statuses %}
+            <option value="{{ s }}" {% if member.account_status == s %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="admission_date">Admission Date</label>
+          <input type="date" id="admission_date" name="admission_date" value="{{ member.admission_date or '' }}">
+        </div>
+        <div class="field">
+          <label for="member_serial_no">Member Serial No.</label>
+          <input type="text" id="member_serial_no" name="member_serial_no" value="{{ member.member_serial_no or '' }}" readonly class="mono">
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="permanent_address">Permanent Address</label>
+        <textarea id="permanent_address" name="permanent_address" rows="2">{{ member.permanent_address or '' }}</textarea>
+      </div>
+
+      <div class="field">
+        <label for="residential_address">Residential Address</label>
+        <textarea id="residential_address" name="residential_address" rows="2">{{ member.residential_address or '' }}</textarea>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label>ID Proof Document</label>
+          {% if member.id_proof_path %}
+          <div style="margin-top:6px">
+            <a class="btn btn--sm" href="/admin/directory/{{ member.id }}/id-proof" target="_blank">View / Download Stored ID Proof</a>
+          </div>
+          {% else %}
+          <p class="small text-muted" style="margin-top:6px">No identity proof uploaded.</p>
+          {% endif %}
+        </div>
+        <div class="field">
+          <label>Profile Photo</label>
+          {% if member.profile_photo_path %}
+          <div style="margin-top:6px">
+            <a class="btn btn--sm" href="/admin/directory/{{ member.id }}/photo" target="_blank">View / Download Stored Photo</a>
+          </div>
+          {% else %}
+          <p class="small text-muted" style="margin-top:6px">No photo uploaded.</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="btn-group" style="margin-top:16px">
+        <button class="btn btn--primary" type="submit">Update Dossier</button>
+        <a class="btn btn--ghost" href="/admin/directory">Cancel</a>
+      </div>
+    </div>
+  </form>
+
+  <form method="post" action="/admin/directory/{{ member.id }}/cessation" class="panel panel--danger"
+        onsubmit="return confirm('Confirm cessation of membership for this user? This will record statutory cessation under Sec. 18 and Form-XV.');">
+    <div class="panel__head">
+      <h2>Statutory Cessation of Membership (Sec. 18 / Form-XV)</h2>
+      <span class="rule-ref">Records Deletion in Annual Return</span>
+    </div>
+    <div class="panel__body">
+      <p class="small text-muted">
+        Marking cessation sets status to <strong>CEASED</strong>, revokes portal capabilities, and records this event for the annual Form-XV filing return.
+      </p>
+      {% if member.cessation_date %}
+      <div class="stat-strip mb-2">
+        <div class="stat">
+          <div class="stat__value">{{ member.cessation_date }}</div>
+          <div class="stat__label">Cessation Date</div>
+        </div>
+        <div class="stat">
+          <div class="stat__value">{{ member.cessation_reason or 'None stated' }}</div>
+          <div class="stat__label">Reason</div>
+        </div>
+      </div>
+      {% endif %}
+      <div class="field">
+        <label for="cessation_reason">Cessation / Deactivation Reason</label>
+        <input type="text" id="cessation_reason" name="cessation_reason" placeholder="e.g. Sold flat BLK-A-0101 / Moved away / Bye-law Sec. 16 cessation" required value="{{ member.cessation_reason or '' }}">
+      </div>
+      <button class="btn btn--danger" type="submit">Confirm Cessation / Deactivate</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

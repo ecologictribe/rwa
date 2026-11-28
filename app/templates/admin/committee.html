@@ -127,9 +127,12 @@
             </td>
             <td data-label="Filing" class="small">
               {% if c.filed_with_registrar_on %}
-              <span class="pill pill--ok">[OK] {{ c.filed_with_registrar_on }}</span>
+              <span class="pill pill--ok">[OK] Filed {{ c.filed_with_registrar_on }}</span>
               {% else %}
-              <span class="pill pill--due">[DUE] {{ c.filing_due_date }}</span>
+              <span class="pill pill--due">[DUE] Due {{ c.filing_due_date }}</span>
+              <form method="post" action="/admin/committee/{{ c.id }}/file" style="margin-top:4px">
+                <button class="btn btn--sm btn--primary" type="submit" title="Record filing with District Registrar">Record Filing</button>
+              </form>
               {% endif %}
               <div class="rule-ref">{{ c.statutory_form_type.replace('_','-') }}</div>
             </td>

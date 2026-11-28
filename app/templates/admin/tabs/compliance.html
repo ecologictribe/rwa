@@ -36,12 +36,44 @@
     <div class="stat__label">Pending Form-X</div>
     <div class="stat__note">Awaiting admission approval</div>
   </div>
+  <div class="stat">
+    <div class="stat__value">{{ quorum_required_gbm }}</div>
+    <div class="stat__label">Statutory Quorum (40%)</div>
+    <div class="stat__note">
+      <span class="pill pill--ok">[OK] Ceiling Floor</span>
+      <span class="rule-ref">Rule 16</span>
+    </div>
+  </div>
+  <div class="stat">
+    <div class="stat__value">{{ invariants_score }}</div>
+    <div class="stat__label">Enterprise Invariants</div>
+    <div class="stat__note">
+      {% if invariants_passed %}
+      <span class="pill pill--ok">[OK] 8/8 Enforced</span>
+      {% else %}
+      <span class="pill pill--over">[X] Drift Detected</span>
+      {% endif %}
+      <span class="rule-ref">HRRS Sentinel</span>
+    </div>
+  </div>
+  <div class="stat">
+    <div class="stat__value">SHA-256</div>
+    <div class="stat__label">Cryptographic Audit Chain</div>
+    <div class="stat__note">
+      {% if audit_chain_verified %}
+      <span class="pill pill--ok">[OK] Tamper-Evident</span>
+      {% else %}
+      <span class="pill pill--over">[X] Corrupted</span>
+      {% endif %}
+      <span class="rule-ref">Sec. 39</span>
+    </div>
+  </div>
 </div>
 
 <section class="panel">
   <div class="panel__head">
     <h2>Statutory Filing Countdowns</h2>
-    <span class="rule-ref">15-day Form-XII &middot; 30-day Form-XVII / XVII-A</span>
+    <span class="rule-ref">HRRS Act &middot; Sec. 18(1) (15d) &middot; Rule 13 (60d) &middot; Rule 19 (30d)</span>
   </div>
   <div class="panel__body" style="padding:0">
     {% if countdowns %}
